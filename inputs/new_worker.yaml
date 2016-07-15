@@ -1,0 +1,10 @@
+key: Z 
+cloud_id: a90df8b0b5c44afa934c0b3f25a28d24
+image_id: ami-d91428b7
+coreos: false
+size_id: m1.medium
+location_id: '0'
+monitoring: false
+name: GigaDemoNewWorker
+delta: 1
+networks: []
