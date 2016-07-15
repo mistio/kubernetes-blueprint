@@ -68,7 +68,7 @@ This command (as the name suggests) initializes your working directory to work w
 The output would be something like this:
 
 ```
-(mist-cloudify-example)user@user:~/mist-cloudify-example$ cfy local init -p mist-blueprint.yaml -i inputs/mist.yaml
+(kubernetes-blueprint)user@user:~/kubernetes-bluepring$ cfy local init -p mist-blueprint.yaml -i inputs/mist.yaml
 Processing Inputs Source: inputs/mist.yaml
 Initiated mist-blueprint.yaml
 If you make changes to the blueprint, run 'cfy local init -p mist-blueprint.yaml' again to apply them
@@ -86,7 +86,7 @@ This command will install the kubernetes master and a kubernetes minion.
 The output should be something like that: <br>
 
 ```
-(mist-cloudify-example)user@user:~/unweb/mist-cloudify-example$ cfy local execute -w install
+(kubernetes-blueprinig)user@user:~/kubernetes-blueprint$ cfy local execute -w install
 2016-05-08 16:43:48 CFY <local> Starting 'install' workflow execution
 2016-05-08 16:43:48 CFY <local> [key_13e52] Creating node
 2016-05-08 16:43:48 CFY <local> [master_677f6] Creating node
@@ -111,8 +111,8 @@ You can view the public ip of the kubernetes master on Basic Info  section of th
 Make sure the cluster has been created with kubectl
 
 ```
-user@user:~/unweb/mist-cloudify-example$ curl -O https://storage.googleapis.com/kubernetes-release/release/v1.1.8/bin/linux/amd64/kubectl && chmod +x kubectl
-user@user:~/unweb/mist-cloudify-example$ ./kubectl --server=http://54.194.24.223:8080 get nodes
+user@user:~/kubernetes-blueprint$ curl -O https://storage.googleapis.com/kubernetes-release/release/v1.1.8/bin/linux/amd64/kubectl && chmod +x kubectl
+user@user:~/kubernetes-blueprint$ ./kubectl --server=http://54.194.24.223:8080 get nodes
 NAME            LABELS                                 STATUS     AGE
 172.31.25.152   kubernetes.io/hostname=172.31.25.152   Ready   2m
 ```
@@ -126,7 +126,7 @@ To scale the cluster up  first edit the `inputs/new_worker.yaml` file with the p
 Example output would be something like:
 
 ```
-(mist-cloudify-example)user@user:~/unweb/mist-cloudify-example$ cfy local execute -w scale_cluster_up -p inputs/new_worker.yaml
+(kubernetes-blueprint)user@user:~/kubernetes-blueprint$ cfy local execute -w scale_cluster_up -p inputs/new_worker.yaml
 Processing Inputs Source: inputs/new_worker.yaml
 2016-05-08 17:15:25 CFY <local> Starting 'scale_cluster_up' workflow execution
 ...
@@ -140,7 +140,7 @@ Processing Inputs Source: inputs/new_worker.yaml
 Make sure the nodes were created and added on the cluster
 
 ```
-user@user:~/unweb/mist-cloudify-example$ ./kubectl --server=http://54.194.24.223:8080 get nodes
+user@user:~/kubernetes-blueprint$ ./kubectl --server=http://54.194.24.223:8080 get nodes
 NAME            LABELS                                 STATUS     AGE
 172.31.18.235   kubernetes.io/hostname=172.31.18.235   Ready      6m
 172.31.19.30    kubernetes.io/hostname=172.31.19.30    Ready      6m
@@ -155,7 +155,7 @@ To scale the cluster down edit the `inputs/remove_worker.yaml` file and specify 
 Example output would be something like:
 
 ```
-(mist-cloudify-example)user@user:~/unweb/mist-cloudify-example$ cfy local execute -w scale_cluster_down -p inputs/remove_worker.yaml
+(kubernetes-blueprint)user@user:~/kubernetes-blueprint$ cfy local execute -w scale_cluster_down -p inputs/remove_worker.yaml
 Processing Inputs Source: inputs/remove_worker.yaml
 2016-05-08 17:33:22 CFY <local> Starting 'scale_cluster_down' workflow execution
 ...
@@ -166,7 +166,7 @@ Processing Inputs Source: inputs/remove_worker.yaml
 Make sure the nodes were removed from the  cluster
 
 ```
-user@user:~/unweb/mist-cloudify-example$ ./kubectl --server=http://54.194.24.223:8080 get nodes
+user@user:~/kubernetes-blueprint$ ./kubectl --server=http://54.194.24.223:8080 get nodes
 NAME            LABELS                                 STATUS     AGE
 172.31.19.30    kubernetes.io/hostname=172.31.19.30    Ready      6m
 172.31.25.152   kubernetes.io/hostname=172.31.25.152   Ready   32m
@@ -181,7 +181,7 @@ To uninstall the kubernetes cluster and destroy all the machines we run the `uni
 Example output will be something like:
 
 ```
-(mist-cloudify-example)user@user:~/unweb/mist-cloudify-example$ cfy local execute -w uninstall
+(kubernetes-blueprint)user@user:~/kubernetes-blueprint$ cfy local execute -w uninstall
 2016-05-07 23:40:31 CFY <local> Starting 'uninstall' workflow execution
 ...
 2016-05-07 23:41:20 LOG <local> [master_db493.delete] INFO: Machine destroyed
