@@ -1,11 +1,11 @@
 # Mist Cloudify Kubernetes Cluster Example
 
 
-This repository contains several blueprints for installing a kubernetes cluster through mist.io .<br>
-Kubernetes cluster example consists of:
+This repository contains a blueprint for installing a kubernetes cluster through mist.io.<br>
+The aforementioned kubernetes cluster consists of:
 
 - A kubernetes master
-- A kubernetes minion(worker)
+- A kubernetes minion (worker)
 
 Before you begin its recommended you familiarize yourself with
 [Cloudify Terminology](http://getcloudify.org/guide/3.1/reference-terminology.html).
@@ -17,13 +17,14 @@ This has been succesfully tested on Ubuntu 14.04 and python 2.7
 
 ## Step 1: Install the software
 
+
 ```
-git clone https://github.com/mistio/mist-cloudify-example
-cd mist-cloudify-example
+git clone https://github.com/mistio/kubernetes-blueprint
+cd kubernetes-bluepring
 virtualenv . # create virtualenv
 source bin/activate
 pip install -r dev-requirements.txt # install dependencies
-pip install cloudify https://github.com/mistio/mist.client/archive/cloudify_integration.zip
+pip install cloudify https://github.com/mistio/mist.client/archive/master.zip
 git clone https://github.com/mistio/cloudify-mist-plugin
 cd cloudify-mist-plugin
 python setup.py  develop
@@ -41,16 +42,12 @@ You need to add a cloud on your mist.io account. Login to the dashboard (https:/
 ![alt tag](images/id.png)
 
 
-You also need to add an ssh key for mist.io that will be deployed to the machines once they are created. Visit the Keys tab on your mist.io dashboard and generate or upload a key. <br>Note the name, as it will be used on the mist.yaml input file.
+You also need to add an ssh key for mist.io that will be deployed to the machines once they are created. Visit the Keys tab on your mist.io dashboard and generate or upload a key. You can use separate keys for each machine. <br> Note the name, as it will be used on the mist.yaml input file.
 
 ![alt tag](images/cf.png)
 
 
 Now enter your [account page](https://mist.io/account) and create a token on the API TOKENS tabs.
-
-
-The kubernetes example scripts are made for a [coreos beta image](http://thecloudmarket.com/image/ami-4f4acd3c--coreos-beta-991-2-0) of AWS Ireland and will create [m3.xlarge instances](https://aws.amazon.com/ec2/instance-types/).
-<br>There is also support for other linux distribution using the recommended [scripts from kubernetes repo](https://github.com/kubernetes/kubernetes/tree/master/docs/getting-started-guides/docker-multinode)
 
 Check the blueprint file inputs section and fill
 the mist input (inputs/mist.yaml) file with the necessary information.
