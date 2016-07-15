@@ -1,0 +1,8 @@
+*.pyc
+*.sw[op]
+.cloudify/
+lib/
+bin/
+include/
+local/
+local-storage/
