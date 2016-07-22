@@ -1,24 +1,24 @@
-# # # # # # # # # # # # # # # i# # # # # # # # # # # # # # # #
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # Blueprint for deploying a Kubernetes cluster through Mist.io
-# # # # # # # # # # # # # # # i# # # # # # # # # # # # # # # #
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
-tosca_definitions_version: cloudify_dsl_1_3
+tosca_definitions_version: cloudify_dsl_1_2
 
-# # # # # # # # # # # # # # # i# # # # # # # # # # # # # # # #
+# # # # # # # # # # # # # # i# # # # # # # # # # # # # # # #
 # Imports section
 # Importing the Mist.io-Cloudify Plugin
-# # # # # # # # # # # # # # # i# # # # # # # # # # # # # # # #
+# # # # # # # # # # # # # # i# # # # # # # # # # # # # # # #
 
 imports:
   - http://www.getcloudify.org/spec/cloudify/3.3m5/types.yaml
   # TODO: reform_kube --> master
   - http://raw.githubusercontent.com/mistio/cloudify-mist-plugin/reform_kube/plugin.yaml
 
-# # # # # # # # # # # # # # # i# # # # # # # # # # # # # # # #
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # Inputs section
 # To specify deployment inputs run:
 #   cfy deployments create -b <blueprint_id> -d <deployment_id> -i inputs.json
-# # # # # # # # # # # # # # # i# # # # # # # # # # # # # # # #
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
 inputs:
   cloud_id:
@@ -100,9 +100,9 @@ inputs:
     description: Associate floating IP to an Openstack instance
     default: true
 
-# # # # # # # # # # # # # # # i# # # # # # # # # # # # # # # #
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # Declaration of Kubernetes node_types
-# # # # # # # # # # # # # # # i# # # # # # # # # # # # # # # #
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
 node_types:
   cloudify.mist.nodes.KubernetesMaster:
@@ -127,6 +127,10 @@ node_types:
         description: Indicates whether Kubernetes is based on a CoreOS image
         type: boolean
         default: false
+      master:
+        description: Indicates the Kubernetes Master node
+        type: boolean
+        default: true
       parameters:
         description: >
           The key value pair parameters required by the Mist Client to use
@@ -140,11 +144,8 @@ node_types:
     interfaces:
       cloudify.interfaces.lifecycle:
         configure:
-          implementation: mist.plugin.kubernetes.install_kubernetes # MOVE TO BLUEPRINT AS WELL
+          implementation: tasks/install_kubernetes.py
           inputs:
-            master:
-              type: boolean
-              default: true
             start_retry_interval:
               description: Polling interval until the server is active (in seconds)
               type: integer
@@ -178,6 +179,10 @@ node_types:
         description: Indicates whether Kubernetes is based on a CoreOS image
         type: boolean
         default: false
+      master:
+        description: Indicates the Kubernetes Master node
+        type: boolean
+        default: false
       mist_config:
         description: >
           A dictionary of values to pass to authenticate with the Mist API
@@ -185,19 +190,16 @@ node_types:
     interfaces:
       cloudify.interfaces.lifecycle:
         configure:
-          implementation: mist.plugin.kubernetes.install_kubernetes
+          implementation: tasks/install_kubernetes.py
           inputs:
-            master:
-              type: boolean
-              default: false
             start_retry_interval:
               description: Polling interval until the server is active (in seconds)
               type: integer
               default: 30
 
-# # # # # # # # # # # # # # # i# # # # # # # # # # # # # # # #
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # Kubernetes node_templates
-# # # # # # # # # # # # # # # i# # # # # # # # # # # # # # # #
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
 node_templates:
   kube_master:
@@ -281,11 +283,11 @@ node_templates:
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # Declaration of workflows for scaling the Kubernetes cluster
-# # # # # # # # # # # # # # # i# # # # # # # # # # # # # # # #
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
 workflows:
-  scale_cluster_up: 
-    mapping: mist.plugin.kubernetes.scale_cluster_up
+  scale_cluster:
+    mapping: tasks/scale_kubernetes.py
     parameters:
       use_external_resource:
         default: false
@@ -293,46 +295,44 @@ workflows:
         default: ''
       key:
         description: Key ID (mandatory)
+        default: ''
       cloud_id:
         description: Cloud ID (mandatory)
       image_id:
         description: Image ID (mandatory)
+        default: ''
       size_id:
         description: Size ID (mandatory)
+        default: ''
       location_id:
         description: Location ID (mandatory)
+        default: ''
       name:
         description: The name of the new Kubernetes Worker (mandatory)
       monitoring:
         description: Whether to nable monitoring on the machine or not (mandatory)
+        default: false
       networks:
-        description: The network IDs that will be used by the machine (mandatory)
+        description: The network IDs that will be used by the machine (mandatory
+        default: []
       coreos:
         description: Whether the machine's image is CoreOS (mandatory)
+        default: false
       delta:
-        description: Number of workers
-        default: 1
+        description: >
+            Denotes how many worker nodes should be added/removed to/from the
+            kubernetes cluster. A positive number denotes increase of
+            instances, while a negative one denotes decrease of instances
+        default: 0
 
-  scale_cluster_down:
-    mapping: mist.plugin.kubernetes.scale_cluster_down
-    parameters:
-      cloud_id:
-        description: Cloud ID (mandatory)
-      name:
-        description: The name of the Kubernetes Worker (mandatory)
-      delta:
-        description: Number of workers
-        default: 1
-
-##########################################################
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # Outputs expose the application's endpoints
 # You can access them by running:
 #   cfy deployments -d <deployment_id> outputs
-###########################################################
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
 outputs:
   endpoint:
     description: Master IP
     value:
       master_ip: { get_property: [ kube_master, ip ] }
-
