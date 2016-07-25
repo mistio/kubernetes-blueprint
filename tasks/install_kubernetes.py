@@ -1,5 +1,4 @@
 from cloudify import ctx
-from cloudify.decorators import operation
 from cloudify.exceptions import NonRecoverableError
 
 import sys
@@ -27,28 +26,25 @@ resource_path = os.path.join('../scripts', 'coreos_worker.sh')
 install_coreos_worker_script = pkg_resources.resource_string(resource_package, resource_path)
 
 
-def install_kubernetes():
-    client = connection.MistConnectionClient().client
-    machine = connection.MistConnectionClient().machine
-    if ctx.node.properties["master"]:
-        ctx.instance.runtime_properties["master_ip"] = machine.info["private_ips"][0]
-        kub_type = "master"
-        if ctx.node.properties["coreos"]:
-            install_script = install_coreos_master_script
-        else:
-            install_script = install_master_script
+client = connection.MistConnectionClient().client
+machine = connection.MistConnectionClient().machine
+if ctx.node.properties["master"]:
+    kub_type = "master"
+    ctx.instance.runtime_properties["master_ip"] = machine.info["private_ips"][0]
+    if ctx.node.properties["coreos"]:
+        install_script = install_coreos_master_script
     else:
-        kub_type = "worker"
-        ctx.instance.runtime_properties["master_ip"] = \
-            ctx.instance.relationships[0]._target.instance.runtime_properties["master_ip"]
-        if ctx.node.properties["coreos"]:
-            install_script = install_coreos_worker_script
-        else:
-            install_script = install_worker_script
+        install_script = install_master_script
+else:
+    kub_type = "worker"
+    ctx.instance.runtime_properties["master_ip"] = \
+        ctx.instance.relationships[0]._target.instance.runtime_properties["master_ip"]
+    if ctx.node.properties["coreos"]:
+        install_script = install_coreos_worker_script
+    else:
+        install_script = install_worker_script
 
-    if ctx.node.properties["configured"]:
-        return
-
+if not ctx.node.properties["configured"]:
     if not ctx.node.properties["coreos"]:
         script = """#!/bin/sh
         command_exists() {
@@ -67,8 +63,7 @@ def install_kubernetes():
         machine_id = ctx.instance.runtime_properties['machine_id']
         cloud_id = ctx.node.properties['parameters']['cloud_id']
         job_id = client.run_script(script_id=script_id, cloud_id=cloud_id,
-                                   machine_id=machine_id,
-                                   script_params="",
+                                   machine_id=machine_id, script_params="",
                                    su=False)
         ctx.logger.info("Docker installation started")
         job_id = job_id["job_id"]
@@ -96,8 +91,7 @@ def install_kubernetes():
         script_params = "-m '{0}'".format(ctx.instance.runtime_properties["master_ip"])
     job_id = client.run_script(script_id=script_id, cloud_id=cloud_id,
                                machine_id=machine_id,
-                               script_params=script_params,
-                               su=True)
+                               script_params=script_params, su=True)
     ctx.logger.info("Kubernetes {0} installation started".format(kub_type))
     job_id = job_id["job_id"]
     job = client.get_job(job_id)
@@ -111,6 +105,3 @@ def install_kubernetes():
     ctx.logger.info(job["logs"][2]['stdout'])
     ctx.logger.info(job["logs"][2]['extra_output'])
     ctx.logger.info("Kubernetes {0} installation script succeeded".format(kub_type))
-
-
-install_kubernetes()
