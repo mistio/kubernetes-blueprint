@@ -21,16 +21,27 @@ imports:
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
 inputs:
-  mist_cloud_1:
-    description: The Mist.io ID of the cloud to be used for deployment
+  mist_uri:
+    description: The Mist.io URI
+    default: 'https://mist.io'
+  mist_username:
+    description: Username of the Mist.io user
     default: ''
-  mist_cloud_1_image:
+  mist_password:
+    description: Password of the Mist.io user
+    default: ''
+  mist_token:
+    description: Mist.io API Token
+    default: ''
+  mist_cloud_1:
+    description: The Mist.io ID of the cloud where resources should be provisioned
+  mist_image_1:
     description: The ID of the image to be used for the VMs' creation
     default: ''
-  mist_cloud_1_size:
+  mist_size_1:
     description: The ID of the desired size of the VMs
     default: ''
-  mist_cloud_1_location:
+  mist_location_1:
     description: The ID of a machine's location (based on the cloud provider)
     default: ''
   mist_key_master:
@@ -48,18 +59,6 @@ inputs:
   private_worker_key_path:
     description: The local path, where the minion node's private key is saved
     default: ''
-  mist_uri:
-    description: The Mist.io URI
-    default: 'https://mist.io'
-  mist_username:
-    description: Username of the Mist.io user
-    default: ''
-  mist_password:
-    description: Password of the Mist.io user
-    default: ''
-  mist_token:
-    description: Mist.io API Token
-    default: ''
   coreos:
     description: True, if the image is CoreOS
     default: false
@@ -74,7 +73,7 @@ inputs:
     default: ''
   key_external_resource:
     description: True, in order to use an external resource as the SSH key
-    default: true
+    default: false
   master_external_resource:
     description: True, in order to use an external resource as the Kubernetes master
     default: false
