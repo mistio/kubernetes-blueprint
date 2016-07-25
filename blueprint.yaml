@@ -21,22 +21,22 @@ imports:
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
 inputs:
-  cloud_id:
+  mist_cloud_1:
     description: The Mist.io ID of the cloud to be used for deployment
     default: ''
-  image_id:
+  mist_cloud_1_image:
     description: The ID of the image to be used for the VMs' creation
     default: ''
-  size_id:
+  mist_cloud_1_size:
     description: The ID of the desired size of the VMs
     default: ''
-  location_id:
+  mist_cloud_1_location:
     description: The ID of a machine's location (based on the cloud provider)
     default: ''
-  master_key:
+  mist_key_master:
     description: The Mist.io key ID for the Kubernetes master
     default: ''
-  worker_key:
+  mist_key_worker:
     description: The Mist.io key ID for the Kubernetes worker
     default: ''
   ssh_user:
@@ -51,13 +51,13 @@ inputs:
   mist_uri:
     description: The Mist.io URI
     default: 'https://mist.io'
-  username:
+  mist_username:
     description: Username of the Mist.io user
     default: ''
-  password:
+  mist_password:
     description: Password of the Mist.io user
     default: ''
-  api_token:
+  mist_token:
     description: Mist.io API Token
     default: ''
   coreos:
@@ -215,19 +215,19 @@ node_templates:
       configured: { get_input: master_configured }
       coreos: { get_input: coreos }
       parameters:
-        key: { get_input: master_key }
-        cloud_id: { get_input: cloud_id }
-        image_id: { get_input: image_id }
-        size_id: { get_input: size_id }
-        location_id: { get_input: location_id }
+        key: { get_input: mist_key_master }
+        cloud_id: { get_input: mist_cloud_1 }
+        image_id: { get_input: mist_cloud_1_image }
+        size_id: { get_input: mist_cloud_1_size }
+        location_id: { get_input: mist_cloud_1_location }
         name: { get_input: master_name }
         monitoring: { get_input: monitoring }
         networks: { get_input: networks }
         associate_floating_ip: { get_input: associate_floating_ip }
       mist_config:
-        api_token: { get_input: api_token }
-        username: { get_input: username }
-        password: { get_input: password }
+        api_token: { get_input: mist_token }
+        username: { get_input: mist_username }
+        password: { get_input: mist_password }
         mist_uri: { get_input: mist_uri }
 
   kube_worker:
@@ -241,19 +241,19 @@ node_templates:
       configured: { get_input: worker_configured }
       coreos: {get_input: coreos}
       parameters:
-        key: { get_input: worker_key }
-        cloud_id: { get_input: cloud_id }
-        image_id: { get_input: image_id }
-        size_id: { get_input: size_id }
-        location_id: { get_input: location_id }
+        key: { get_input: mist_key_worker }
+        cloud_id: { get_input: mist_cloud_1 }
+        image_id: { get_input: mist_cloud_1_image }
+        size_id: { get_input: mist_cloud_1_size }
+        location_id: { get_input: mist_cloud_1_location }
         name: { get_input: worker_name }
         monitoring: { get_input: monitoring }
         networks: { get_input: networks }
         associate_floating_ip: { get_input: associate_floating_ip }
       mist_config:
-        api_token: { get_input: api_token }
-        username: { get_input: username }
-        password: { get_input: password }
+        api_token: { get_input: mist_token }
+        username: { get_input: mist_username }
+        password: { get_input: mist_password }
         mist_uri: { get_input: mist_uri }
     relationships:
       - target: kube_master
@@ -263,24 +263,24 @@ node_templates:
     type: cloudify.mist.nodes.KeyPair
     properties:
       use_external_resource: false  # true
-      resource_id: { get_input: master_key }
+      resource_id: { get_input: mist_key_master }
       private_key_path: { get_input: private_master_key_path }
       mist_config:
-        api_token: { get_input: api_token }
-        username: { get_input: username }
-        password: { get_input: password }
+        api_token: { get_input: mist_token }
+        username: { get_input: mist_username }
+        password: { get_input: mist_password }
         mist_uri: { get_input: mist_uri }
 
   worker_key:
     type: cloudify.mist.nodes.KeyPair
     properties:
       use_external_resource: false  # true
-      resource_id: { get_input: worker_key }
+      resource_id: { get_input: mist_key_worker }
       private_key_path: { get_input: private_worker_key_path }
       mist_config:
-        api_token: { get_input: api_token }
-        username: { get_input: username }
-        password: { get_input: password }
+        api_token: { get_input: mist_token }
+        username: { get_input: mist_username }
+        password: { get_input: mist_password }
         mist_uri: { get_input: mist_uri }
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
