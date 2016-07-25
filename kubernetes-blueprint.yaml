@@ -74,7 +74,7 @@ inputs:
     default: ''
   key_external_resource:
     description: True, in order to use an external resource as the SSH key
-    default: true
+    default: false 
   master_external_resource:
     description: True, in order to use an external resource as the Kubernetes master
     default: false
