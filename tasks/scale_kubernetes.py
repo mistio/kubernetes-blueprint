@@ -50,6 +50,7 @@ def scale_cluster():
 
 def scale_cluster_up(delta):
     master = workctx.get_node("kube_master")
+    master_instance = [instance for instance in master.instances][0]
     mist_client = connection.MistConnectionClient(properties=master.properties)
     client = mist_client.client
     cloud = mist_client.cloud
@@ -91,6 +92,7 @@ def scale_cluster_up(delta):
 
     networks = inputs.get('networks', [])
 
+    workctx.logger.info("Deploying %d '%s' minion node(s)", delta, machine_name)
     quantity = delta
     job_id = cloud.create_machine(async=True, name=machine_name, key=key,
                                   image_id=image_id, location_id=location_id,
@@ -136,11 +138,11 @@ def scale_cluster_up(delta):
             machine_ids.append(job['logs'][2+i]['machine_id'])
         if not machine_ids:
             raise NonRecoverableError('Could not retrieve machine IDs')
+        workctx.logger.info("Docker installation started")
         for machine_id in machine_ids:
             job_id = client.run_script(script_id=script_id, cloud_id=cloud_id,
                                        machine_id=machine_id, script_params="",
                                        su=False)
-            workctx.logger.info("Docker installation started")
             job_id = job_id["job_id"]
             job = client.get_job(job_id)
             while True:
@@ -188,6 +190,8 @@ def scale_cluster_up(delta):
                 break
             sleep(10)
             job = client.get_job(job_id)
+        master_instance.execute_operation('cloudify.interfaces.lifecycle.associate',
+                                          kwargs={'minion_id': machine_id})
         workctx.logger.info(job["logs"][2]['stdout'])
         workctx.logger.info(job["logs"][2]['extra_output'])
         workctx.logger.info("Kubernetes worker {0} installation script succeeded".format(inputs["name"]))
@@ -201,10 +205,13 @@ def scale_cluster_down(delta):
     master_machine = mist_client.machine
     master_ip = master_machine.info['public_ips'][0]
 
-    workctx.logger.info('Terminating worker node(s)')
-
     worker_name = inputs.get('name')
     machines = cloud.machines(search=worker_name)
+    if not machines:
+        workctx.logger.info('%s minion node(s) already undeployed', worker_name)
+        return
+
+    workctx.logger.info('Terminating worker node(s)')
     counter = 0
     for m in machines:
         if not m.info['state'] in ('stopped', 'running'):
