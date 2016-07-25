@@ -216,9 +216,9 @@ node_templates:
       parameters:
         key: { get_input: mist_key_master }
         cloud_id: { get_input: mist_cloud_1 }
-        image_id: { get_input: mist_cloud_1_image }
-        size_id: { get_input: mist_cloud_1_size }
-        location_id: { get_input: mist_cloud_1_location }
+        image_id: { get_input: mist_image_1 }
+        size_id: { get_input: mist_size_1 }
+        location_id: { get_input: mist_location_1 }
         name: { get_input: master_name }
         monitoring: { get_input: monitoring }
         networks: { get_input: networks }
@@ -242,9 +242,9 @@ node_templates:
       parameters:
         key: { get_input: mist_key_worker }
         cloud_id: { get_input: mist_cloud_1 }
-        image_id: { get_input: mist_cloud_1_image }
-        size_id: { get_input: mist_cloud_1_size }
-        location_id: { get_input: mist_cloud_1_location }
+        image_id: { get_input: mist_image_1 }
+        size_id: { get_input: mist_size_1 }
+        location_id: { get_input: mist_location_1 }
         name: { get_input: worker_name }
         monitoring: { get_input: monitoring }
         networks: { get_input: networks }
