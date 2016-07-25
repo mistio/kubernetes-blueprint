@@ -1,12 +1,14 @@
-mist_uri: http://172.17.0.1
-ssh_user: ubuntu
-private_key_path: id-rsa
-api_token: 73f77ee159832226c5e5904379871382e6f1d1f92e4cbe9d1da0f11455423907
-key_name: demokey
-cloud_id: 8f6cf7aef21f4b279c1982b2382c70b5
-image_id: 41a569c9-aea3-46b5-9bda-2d4a422c92a5
+mist_uri: http://172.17.0.1/
+ssh_user: core 
+# key_name: MyKey
+master_key: c4b6efa8d0a74f989d2d8a0fae7a04d1                                     
+worker_key: c4b6efa8d0a74f989d2d8a0fae7a04d1                                     
+private_master_key_path: ~/.ssh/id_rsa_cfy                                       
+private_worker_key_path: ~/.ssh/id_rsa_cfy 
+cloud_id: f9622b1679134189926aa2c01e465fc6 
+image_id: 0adee2e0-c414-42f3-b9ca-b61671924055
 coreos: true
-size_id: '2'
+size_id: 41394119-5a38-4f67-b811-c730003ee75b 
 location_id: '0'
 monitoring: false
 worker_name: GigaDemoFirstWorker
@@ -18,4 +20,5 @@ worker_configured: false
 master_external_resource: false
 master_external_resource_id: 'i-3fb9c4b7'
 master_configured: false
-networks: ["8634a3b8-38da-4638-9aee-f664b7af4704"]
+networks: ["d9e7836f-1c40-4bed-9921-772e68d62646"]
+api_token: 544be89e3016f2fb0ba433802ee432da2e672cd7fe8e4ccc6926e1a54e835eec 
