@@ -51,13 +51,13 @@ inputs:
   mist_uri:
     description: The Mist.io URI
     default: 'https://mist.io'
-  username:
+  mist_username:  # username:
     description: Username of the Mist.io user
     default: ''
-  password:
+  mist_password:  # password:
     description: Password of the Mist.io user
     default: ''
-  api_token:
+  mist_token:  # api_token:
     description: Mist.io API Token
     default: ''
   coreos:
