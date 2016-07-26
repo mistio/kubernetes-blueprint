@@ -30,7 +30,7 @@ except IOError:
     tmp_dir = os.path.join('/tmp/templates', 
                            'mistio-kubernetes-blueprint-[A-Za-z0-9]*', 
                            'scripts')
-    scripts_dir = glob.glob(tmp_dir)
+    scripts_dir = glob.glob(tmp_dir)[0]
     resource_path = os.path.join(scripts_dir, 'worker.sh')
     install_worker_script = pkg_resources.resource_string(resource_package, resource_path)
     resource_path = os.path.join(scripts_dir, 'master.sh')
