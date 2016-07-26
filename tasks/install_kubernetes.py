@@ -27,18 +27,22 @@ try:
     resource_path = os.path.join('../scripts', 'coreos_worker.sh')
     install_coreos_worker_script = pkg_resources.resource_string(resource_package, resource_path)
 except IOError:
-    tmp_dir = os.path.join('/tmp/templates', 
-                           'mistio-kubernetes-blueprint-[A-Za-z0-9]*', 
+    tmp_dir = os.path.join('/tmp/templates',
+                           'mistio-kubernetes-blueprint-[A-Za-z0-9]*',
                            'scripts')
     scripts_dir = glob.glob(tmp_dir)[0]
     resource_path = os.path.join(scripts_dir, 'worker.sh')
-    install_worker_script = pkg_resources.resource_string(resource_package, resource_path)
+    with open(resource_path) as f:
+        install_worker_script = f.read()
     resource_path = os.path.join(scripts_dir, 'master.sh')
-    install_master_script = pkg_resources.resource_string(resource_package, resource_path)
+    with open(resource_path) as f:
+        install_master_script = f.read()
     resource_path = os.path.join(scripts_dir, 'coreos_master.sh')
-    install_coreos_master_script = pkg_resources.resource_string(resource_package, resource_path)
+    with open(resource_path) as f:
+        install_coreos_master_script = f.read()
     resource_path = os.path.join(scripts_dir, 'coreos_worker.sh')
-    install_coreos_worker_script = pkg_resources.resource_string(resource_package, resource_path)
+    with open(resource_path) as f:
+        install_coreos_worker_script = f.read()
 
 client = connection.MistConnectionClient().client
 machine = connection.MistConnectionClient().machine
