@@ -12,7 +12,7 @@ tosca_definitions_version: cloudify_dsl_1_2
 imports:
   - http://www.getcloudify.org/spec/cloudify/3.3m5/types.yaml
   # TODO: reform_kube --> master
-  - http://raw.githubusercontent.com/mistio/cloudify-mist-plugin/reform_kube/plugin.yaml
+  - http://raw.githubusercontent.com/mistio/cloudify-mist-plugin/reform_inputs/plugin.yaml
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # Inputs section
