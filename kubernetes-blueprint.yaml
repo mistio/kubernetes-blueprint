@@ -225,9 +225,9 @@ node_templates:
         networks: { get_input: networks }
         associate_floating_ip: { get_input: associate_floating_ip }
       mist_config:
-        api_token: { get_input: mist_token }
-        username: { get_input: mist_username }
-        password: { get_input: mist_password }
+        mist_token: { get_input: mist_token }
+        mist_username: { get_input: mist_username }
+        mist_password: { get_input: mist_password }
         mist_uri: { get_input: mist_uri }
 
   kube_worker:
@@ -251,9 +251,9 @@ node_templates:
         networks: { get_input: networks }
         associate_floating_ip: { get_input: associate_floating_ip }
       mist_config:
-        api_token: { get_input: mist_token }
-        username: { get_input: mist_username }
-        password: { get_input: mist_password }
+        mist_token: { get_input: mist_token }
+        mist_username: { get_input: mist_username }
+        mist_password: { get_input: mist_password }
         mist_uri: { get_input: mist_uri }
     relationships:
       - target: kube_master
@@ -266,9 +266,9 @@ node_templates:
       resource_id: { get_input: master_key }
       private_key_path: { get_input: private_master_key_path }
       mist_config:
-        api_token: { get_input: mist_token }
-        username: { get_input: mist_username }
-        password: { get_input: mist_password }
+        mist_token: { get_input: mist_token }
+        mist_username: { get_input: mist_username }
+        mist_password: { get_input: mist_password }
         mist_uri: { get_input: mist_uri }
 
   worker_key:
@@ -278,9 +278,9 @@ node_templates:
       resource_id: { get_input: worker_key }
       private_key_path: { get_input: private_worker_key_path }
       mist_config:
-        api_token: { get_input: mist_token }
-        username: { get_input: mist_username }
-        password: { get_input: mist_password }
+        mist_token: { get_input: mist_token }
+        mist_username: { get_input: mist_username }
+        mist_password: { get_input: mist_password }
         mist_uri: { get_input: mist_uri }
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
