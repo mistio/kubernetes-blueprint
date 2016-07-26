@@ -12,7 +12,7 @@ tosca_definitions_version: cloudify_dsl_1_2
 imports:
   - http://www.getcloudify.org/spec/cloudify/3.3m5/types.yaml
   # TODO: reform_kube --> master
-  - http://raw.githubusercontent.com/mistio/cloudify-mist-plugin/reform_kube/plugin.yaml
+  - http://raw.githubusercontent.com/mistio/cloudify-mist-plugin/reform_inputs/plugin.yaml
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # Inputs section
@@ -224,9 +224,9 @@ node_templates:
         networks: { get_input: networks }
         associate_floating_ip: { get_input: associate_floating_ip }
       mist_config:
-        api_token: { get_input: mist_token }
-        username: { get_input: mist_username }
-        password: { get_input: mist_password }
+        mist_token: { get_input: mist_token }
+        mist_username: { get_input: mist_username }
+        mist_password: { get_input: mist_password }
         mist_uri: { get_input: mist_uri }
 
   kube_worker:
@@ -250,9 +250,9 @@ node_templates:
         networks: { get_input: networks }
         associate_floating_ip: { get_input: associate_floating_ip }
       mist_config:
-        api_token: { get_input: mist_token }
-        username: { get_input: mist_username }
-        password: { get_input: mist_password }
+        mist_token: { get_input: mist_token }
+        mist_username: { get_input: mist_username }
+        mist_password: { get_input: mist_password }
         mist_uri: { get_input: mist_uri }
     relationships:
       - target: kube_master
@@ -265,9 +265,9 @@ node_templates:
       resource_id: { get_input: mist_key_master }
       private_key_path: { get_input: private_master_key_path }
       mist_config:
-        api_token: { get_input: mist_token }
-        username: { get_input: mist_username }
-        password: { get_input: mist_password }
+        mist_token: { get_input: mist_token }
+        mist_username: { get_input: mist_username }
+        mist_password: { get_input: mist_password }
         mist_uri: { get_input: mist_uri }
 
   worker_key:
@@ -277,9 +277,9 @@ node_templates:
       resource_id: { get_input: mist_key_worker }
       private_key_path: { get_input: private_worker_key_path }
       mist_config:
-        api_token: { get_input: mist_token }
-        username: { get_input: mist_username }
-        password: { get_input: mist_password }
+        mist_token: { get_input: mist_token }
+        mist_username: { get_input: mist_username }
+        mist_password: { get_input: mist_password }
         mist_uri: { get_input: mist_uri }
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
