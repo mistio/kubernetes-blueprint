@@ -362,14 +362,14 @@ outputs:
     value:
       command: { concat: [ 'kubectl --insecure-skip-tls-verify 
                            --server="https://', { get_attribute: [ kube_master, ip ] },
-                           '" --username="', { get_property: [ kube_master, auth_user ] },
-                           '" --password="', { get_property: [ kube_master, auth_pass ] }, 
+                           '" --username="', { get_attribute: [ kube_master, auth_user ] },
+                           '" --password="', { get_attribute: [ kube_master, auth_pass ] }, 
                            '" cluster-info' ] }
   dashboard:
     description: Kubernetes dashboard URL
     value:
       url: { concat: [ 'https://', { get_attribute: [ kube_master, ip ] },
                        '/api/v1/proxy/namespaces/kube-system/services/kubernetes-dashboard' ] }
-      username: { get_property: [ kube_master, auth_user ] }
-      password: { get_property: [ kube_master, auth_pass ] }
+      username: { get_attribute: [ kube_master, auth_user ] }
+      password: { get_attribute: [ kube_master, auth_pass ] }
 

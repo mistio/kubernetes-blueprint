@@ -108,6 +108,8 @@ if not ctx.node.properties["configured"]:
         from random import choice
         passwd = ctx.node.properties['auth_pass'] or \
             ''.join(choice(string.letters + string.digits) for _ in range(10))
+        ctx.instance.runtime_properties['auth_user'] = ctx.node.properties['auth_user']
+        ctx.instance.runtime_properties['auth_pass'] = passwd
         script_params = "-u '{0}' -p '{1}'".format(ctx.node.properties['auth_user'],
                                                    passwd)
     else:
