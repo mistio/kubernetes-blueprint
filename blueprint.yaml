@@ -11,8 +11,7 @@ tosca_definitions_version: cloudify_dsl_1_2
 
 imports:
   - http://www.getcloudify.org/spec/cloudify/3.3m5/types.yaml
-  # TODO: reform_kube --> master
-  - http://raw.githubusercontent.com/mistio/cloudify-mist-plugin/reform_kube/plugin.yaml
+  - http://raw.githubusercontent.com/mistio/cloudify-mist-plugin/master/plugin.yaml
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # Inputs section
@@ -21,84 +20,81 @@ imports:
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
 inputs:
-  cloud_id:
-    description: The selected cloud's ID
-    default: ''
-  image_id:
-    description: The machine's image
-    default: ''
-  size_id:
-    description: The machine's size
-    default: ''
-  location_id:
-    description: Select location
-    default: ''
-  master_key:
-    description: The Mist.io key ID for the Kubernetes master
-    default: ''
-  worker_key:
-    description: The Mist.io key ID for a Kubernetes worker
-    default: ''
-  ssh_user:
-    description: The SSH user on the machine
-    default: ''
-  private_master_key_path:
-    description: The local path, where the private key is saved
-    default: ''
-  private_worker_key_path:
-    description: The local path, where the private key is saved
-    default: ''
   mist_uri:
     description: The Mist.io URI
+    type: string
     default: 'https://mist.io'
-  username:
+  mist_username:
     description: Username of the Mist.io user
+    type: string
     default: ''
-  password:
+  mist_password:
     description: Password of the Mist.io user
+    type: string
     default: ''
-  api_token:
+  mist_token:
     description: Mist.io API Token
+    type: string
+    default: ''
+  mist_cloud_1:
+    description: The Mist.io ID of the cloud where resources should be provisioned
+    type: string
+    default: ''
+  mist_image_1:
+    description: The ID of the image to be used for the VMs' creation
+    type: string
+    default: ''
+  mist_size_1:
+    description: The ID of the desired size of the VMs
+    type: string
+    default: ''
+  mist_location_1:
+    description: The ID of a machine's location (based on the cloud provider)
+    type: string
+    default: ''
+  mist_key_master:
+    description: The Mist.io key ID for the Kubernetes master
+    type: string
+    default: ''
+  mist_key_worker:
+    description: The Mist.io key ID for the Kubernetes worker
+    type: string
+    default: ''
+  ssh_user:
+    description: The SSH user
+    type: string
     default: ''
   coreos:
     description: True, if the image is CoreOS
-    default: false
+    type: boolean
+    default: true 
   monitoring:
-    description: Enable monitoring on the machine
+    description: True, if monitoring should be enabled for the machine
+    type: boolean
     default: false
   master_name:
-    description: The machine name of the Kubernetes Master
+    description: The machine name of the Kubernetes master
+    type: string
     default: ''
   worker_name:
-    description: The machine name of a Kubernetes Worker
+    description: The machine name of the Kubernetes worker
+    type: string
     default: ''
-  key_external_resource:
-    description: Use external resource for the key
-    default: true
-  master_external_resource:
-    description: Use external resource for the Kubernetes Master
-    default: false
-  worker_external_resource:
-    description: Use external resource for the Kubernetes Worker
-    default: false
-  master_external_resource_id:
-    description: Instance ID of the Kubernetes Master
-    default: ''
-  worker_external_resource_id:
-    description: Instance ID of a Kubernetes Worker
-    default: ''
-  master_configured:
-    description: True, if the master is already configured
-    default: false
-  worker_configured:
-    description: True, if the worker is already configured
-    default: false
   networks:
-    description: The network IDs that will be used by the machine
+    description: A list of network IDs that will be used by the machine
     default: []
   associate_floating_ip:
-    description: Associate floating IP to an Openstack instance
+    description: True, in order to associate a floating IP to an Openstack instance
+    type: boolean
     default: true
+  auth_user:  # TODO can be a separate data type
+    description: The username used for accessing the Kubernetes dashboard
+    type: string
+    default: 'admin'
+  auth_pass:
+    description: The password used for accessing the Kubernetes dashboard
+    type: string
+    default: ''
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # Declaration of Kubernetes node_types
@@ -126,7 +122,7 @@ node_types:
       coreos:
         description: Indicates whether Kubernetes is based on a CoreOS image
         type: boolean
-        default: false
+        default: true 
       master:
         description: Indicates the Kubernetes Master node
         type: boolean
@@ -141,6 +137,12 @@ node_types:
         description: >
           A dictionary of values to pass to authenticate with the Mist API
         type: cloudify.datatypes.mist.Config
+      auth_user:
+        description: The username used for accessing the Kubernetes dashboard
+        default: 'admin'
+      auth_pass:
+        description: The password used for accessing the Kubernetes dashboard
+        default: ''
     interfaces:
       cloudify.interfaces.lifecycle:
         configure:
@@ -180,7 +182,7 @@ node_types:
       coreos:
         description: Indicates whether Kubernetes is based on a CoreOS image
         type: boolean
-        default: false
+        default: true 
       master:
         description: Indicates the Kubernetes Master node
         type: boolean
@@ -209,51 +211,53 @@ node_templates:
     properties:
       cloudify_agent:
         user: { get_input: ssh_user }
-        key: { get_input: private_master_key_path }
-      use_external_resource: { get_input: master_external_resource }
-      resource_id: { get_input: master_external_resource_id }
-      configured: { get_input: master_configured }
+        key: '' 
+      use_external_resource: false 
+      resource_id: '' 
+      configured: false 
       coreos: { get_input: coreos }
       parameters:
-        key: { get_input: master_key }
-        cloud_id: { get_input: cloud_id }
-        image_id: { get_input: image_id }
-        size_id: { get_input: size_id }
-        location_id: { get_input: location_id }
+        key: { get_input: mist_key_master }
+        cloud_id: { get_input: mist_cloud_1 }
+        image_id: { get_input: mist_image_1 }
+        size_id: { get_input: mist_size_1 }
+        location_id: { get_input: mist_location_1 }
         name: { get_input: master_name }
         monitoring: { get_input: monitoring }
         networks: { get_input: networks }
         associate_floating_ip: { get_input: associate_floating_ip }
       mist_config:
-        api_token: { get_input: api_token }
-        username: { get_input: username }
-        password: { get_input: password }
+        mist_token: { get_input: mist_token }
+        mist_username: { get_input: mist_username }
+        mist_password: { get_input: mist_password }
         mist_uri: { get_input: mist_uri }
+      auth_user: { get_input: auth_user }
+      auth_pass: { get_input: auth_pass }
 
   kube_worker:
     type: cloudify.mist.nodes.KubernetesWorker
     properties:
       cloudify_agent:
         user: { get_input: ssh_user }
-        key: { get_input: private_worker_key_path }
-      use_external_resource: { get_input: worker_external_resource }
-      resource_id: { get_input: worker_external_resource_id }
-      configured: { get_input: worker_configured }
+        key: '' 
+      use_external_resource: false 
+      resource_id: '' 
+      configured: false 
       coreos: {get_input: coreos}
       parameters:
-        key: { get_input: worker_key }
-        cloud_id: { get_input: cloud_id }
-        image_id: { get_input: image_id }
-        size_id: { get_input: size_id }
-        location_id: { get_input: location_id }
+        key: { get_input: mist_key_worker }
+        cloud_id: { get_input: mist_cloud_1 }
+        image_id: { get_input: mist_image_1 }
+        size_id: { get_input: mist_size_1 }
+        location_id: { get_input: mist_location_1 }
         name: { get_input: worker_name }
         monitoring: { get_input: monitoring }
         networks: { get_input: networks }
         associate_floating_ip: { get_input: associate_floating_ip }
       mist_config:
-        api_token: { get_input: api_token }
-        username: { get_input: username }
-        password: { get_input: password }
+        mist_token: { get_input: mist_token }
+        mist_username: { get_input: mist_username }
+        mist_password: { get_input: mist_password }
         mist_uri: { get_input: mist_uri }
     relationships:
       - target: kube_master
@@ -262,25 +266,25 @@ node_templates:
   master_key:
     type: cloudify.mist.nodes.KeyPair
     properties:
-      use_external_resource: true
-      resource_id: { get_input: master_key }
-      private_key_path: { get_input: private_master_key_path }
+      use_external_resource: false
+      resource_id: { get_input: mist_key_master }
+      private_key_path: '' 
       mist_config:
-        api_token: { get_input: api_token }
-        username: { get_input: username }
-        password: { get_input: password }
+        mist_token: { get_input: mist_token }
+        mist_username: { get_input: mist_username }
+        mist_password: { get_input: mist_password }
         mist_uri: { get_input: mist_uri }
 
   worker_key:
     type: cloudify.mist.nodes.KeyPair
     properties:
-      use_external_resource: true
-      resource_id: { get_input: worker_key }
-      private_key_path: { get_input: private_worker_key_path }
+      use_external_resource: false
+      resource_id: { get_input: mist_key_worker }
+      private_key_path: '' 
       mist_config:
-        api_token: { get_input: api_token }
-        username: { get_input: username }
-        password: { get_input: password }
+        mist_token: { get_input: mist_token }
+        mist_username: { get_input: mist_username }
+        mist_password: { get_input: mist_password }
         mist_uri: { get_input: mist_uri }
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
@@ -292,39 +296,52 @@ workflows:
     mapping: tasks/scale_kubernetes.py
     parameters:
       use_external_resource:
+        type: boolean
         default: false
       external_resource_id:
+        type: string
         default: ''
-      key:
+      mist_key:
         description: Key ID (mandatory)
+        type: string
         default: ''
-      cloud_id:
+      mist_cloud:
         description: Cloud ID (mandatory)
-      image_id:
+        type: string
+        default: ''
+      mist_image:
         description: Image ID (mandatory)
+        type: string
         default: ''
-      size_id:
+      mist_size:
         description: Size ID (mandatory)
+        type: string 
         default: ''
-      location_id:
+      mist_location:
         description: Location ID (mandatory)
+        type: string
         default: ''
       name:
         description: The name of the new Kubernetes Worker (mandatory)
+        type: string
+        default: ''
       monitoring:
         description: Whether to nable monitoring on the machine or not (mandatory)
+        type: boolean
         default: false
       networks:
         description: The network IDs that will be used by the machine (mandatory
         default: []
       coreos:
         description: Whether the machine's image is CoreOS (mandatory)
-        default: false
+        type: boolean
+        default: true 
       delta:
         description: >
             Denotes how many worker nodes should be added/removed to/from the
             kubernetes cluster. A positive number denotes increase of
             instances, while a negative one denotes decrease of instances
+        type: integer
         default: 0
 
 # TODO: relationship to connect worker to master
@@ -341,12 +358,18 @@ outputs:
     value:
       ip: { get_attribute: [ kube_master, ip ] }
   kubectl:
-    description: Kubernetes shell command to verify the pods' deployment
+    description: Kubernetes shell command to verify the nodes' deployment
     value:
-      command: { concat: [ 'kubectl --server=http://', { get_attribute: [ kube_master, ip ] },
-                           ':8080 get nodes' ] }
+      command: { concat: [ 'kubectl --insecure-skip-tls-verify 
+                           --server="https://', { get_attribute: [ kube_master, ip ] },
+                           '" --username="', { get_attribute: [ kube_master, auth_user ] },
+                           '" --password="', { get_attribute: [ kube_master, auth_pass ] }, 
+                           '" cluster-info' ] }
   dashboard:
     description: Kubernetes dashboard URL
     value:
-      url: { concat: [ 'http://', { get_attribute: [ kube_master, ip ] },
-                       '/api/v1/proxy/namespaces/kube_system/services/kubernetes_dashboard' ] }
+      url: { concat: [ 'https://', { get_attribute: [ kube_master, ip ] },
+                       '/api/v1/proxy/namespaces/kube-system/services/kubernetes-dashboard' ] }
+      username: { get_attribute: [ kube_master, auth_user ] }
+      password: { get_attribute: [ kube_master, auth_pass ] }
+

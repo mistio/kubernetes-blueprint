@@ -5,6 +5,7 @@ import sys
 import os
 import uuid
 import pkg_resources
+import glob
 
 from time import sleep
 
@@ -16,15 +17,32 @@ except ImportError:
 
 
 resource_package = __name__  # Could be any module/package name.
-resource_path = os.path.join('../scripts', 'worker.sh')
-install_worker_script = pkg_resources.resource_string(resource_package, resource_path)
-resource_path = os.path.join('../scripts', 'master.sh')
-install_master_script = pkg_resources.resource_string(resource_package, resource_path)
-resource_path = os.path.join('../scripts', 'coreos_master.sh')
-install_coreos_master_script = pkg_resources.resource_string(resource_package, resource_path)
-resource_path = os.path.join('../scripts', 'coreos_worker.sh')
-install_coreos_worker_script = pkg_resources.resource_string(resource_package, resource_path)
-
+try:
+    resource_path = os.path.join('../scripts', 'worker.sh')
+    install_worker_script = pkg_resources.resource_string(resource_package, resource_path)
+    resource_path = os.path.join('../scripts', 'master.sh')
+    install_master_script = pkg_resources.resource_string(resource_package, resource_path)
+    resource_path = os.path.join('../scripts', 'coreos_master.sh')
+    install_coreos_master_script = pkg_resources.resource_string(resource_package, resource_path)
+    resource_path = os.path.join('../scripts', 'coreos_worker.sh')
+    install_coreos_worker_script = pkg_resources.resource_string(resource_package, resource_path)
+except IOError:
+    tmp_dir = os.path.join('/tmp/templates',
+                           'mistio-kubernetes-blueprint-[A-Za-z0-9]*',
+                           'scripts')
+    scripts_dir = glob.glob(tmp_dir)[0]
+    resource_path = os.path.join(scripts_dir, 'worker.sh')
+    with open(resource_path) as f:
+        install_worker_script = f.read()
+    resource_path = os.path.join(scripts_dir, 'master.sh')
+    with open(resource_path) as f:
+        install_master_script = f.read()
+    resource_path = os.path.join(scripts_dir, 'coreos_master.sh')
+    with open(resource_path) as f:
+        install_coreos_master_script = f.read()
+    resource_path = os.path.join(scripts_dir, 'coreos_worker.sh')
+    with open(resource_path) as f:
+        install_coreos_worker_script = f.read()
 
 client = connection.MistConnectionClient().client
 machine = connection.MistConnectionClient().machine
@@ -86,7 +104,14 @@ if not ctx.node.properties["configured"]:
     machine_id = ctx.instance.runtime_properties['machine_id']
     cloud_id = ctx.node.properties['parameters']['cloud_id']
     if kub_type == "master":
-        script_params = ""
+        import string
+        from random import choice
+        passwd = ctx.node.properties['auth_pass'] or \
+            ''.join(choice(string.letters + string.digits) for _ in range(10))
+        ctx.instance.runtime_properties['auth_user'] = ctx.node.properties['auth_user']
+        ctx.instance.runtime_properties['auth_pass'] = passwd
+        script_params = "-u '{0}' -p '{1}'".format(ctx.node.properties['auth_user'],
+                                                   passwd)
     else:
         script_params = "-m '{0}'".format(ctx.instance.runtime_properties["master_ip"])
     job_id = client.run_script(script_id=script_id, cloud_id=cloud_id,

@@ -6,6 +6,7 @@ import sys
 import os
 import uuid
 import pkg_resources
+import glob
 import requests
 
 from time import sleep
@@ -18,14 +19,32 @@ except ImportError:
 
 
 resource_package = __name__  # Could be any module/package name.
-resource_path = os.path.join('../scripts', 'worker.sh')
-install_worker_script = pkg_resources.resource_string(resource_package, resource_path)
-resource_path = os.path.join('../scripts', 'master.sh')
-install_master_script = pkg_resources.resource_string(resource_package, resource_path)
-resource_path = os.path.join('../scripts', 'coreos_master.sh')
-install_coreos_master_script = pkg_resources.resource_string(resource_package, resource_path)
-resource_path = os.path.join('../scripts', 'coreos_worker.sh')
-install_coreos_worker_script = pkg_resources.resource_string(resource_package, resource_path)
+try:
+    resource_path = os.path.join('../scripts', 'worker.sh')
+    install_worker_script = pkg_resources.resource_string(resource_package, resource_path)
+    resource_path = os.path.join('../scripts', 'master.sh')
+    install_master_script = pkg_resources.resource_string(resource_package, resource_path)
+    resource_path = os.path.join('../scripts', 'coreos_master.sh')
+    install_coreos_master_script = pkg_resources.resource_string(resource_package, resource_path)
+    resource_path = os.path.join('../scripts', 'coreos_worker.sh')
+    install_coreos_worker_script = pkg_resources.resource_string(resource_package, resource_path)
+except IOError:
+    tmp_dir = os.path.join('/tmp/templates',
+                           'mistio-kubernetes-blueprint-[A-Za-z0-9]*',
+                           'scripts')
+    scripts_dir = glob.glob(tmp_dir)[0]
+    resource_path = os.path.join(scripts_dir, 'worker.sh')
+    with open(resource_path) as f:
+        install_worker_script = f.read()
+    resource_path = os.path.join(scripts_dir, 'master.sh')
+    with open(resource_path) as f:
+        install_master_script = f.read()
+    resource_path = os.path.join(scripts_dir, 'coreos_master.sh')
+    with open(resource_path) as f:
+        install_coreos_master_script = f.read()
+    resource_path = os.path.join(scripts_dir, 'coreos_worker.sh')
+    with open(resource_path) as f:
+        install_coreos_worker_script = f.read()
 
 
 def scale_cluster():
@@ -69,8 +88,8 @@ def scale_cluster_up(delta):
                     "Machine with name {0} exists".format(machine_name))
 
     key = ""
-    if inputs.get("key"):
-        key = client.keys(search=inputs["key"])
+    if inputs.get("mist_key"):
+        key = client.keys(search=inputs["mist_key"])
         if len(key):
             key = key[0]
         else:
@@ -78,15 +97,15 @@ def scale_cluster_up(delta):
     else:
         raise NonRecoverableError("key not found")
 
-    image_id = inputs.get('image_id', '')
+    image_id = inputs.get('mist_image', '')
     if not image_id:
         raise NonRecoverableError('No image ID provided')
 
-    size_id = inputs.get('size_id', '')
+    size_id = inputs.get('mist_size', '')
     if not size_id:
         raise NonRecoverableError('No size ID provided')
 
-    location_id = inputs.get('location_id', '')
+    location_id = inputs.get('mist_location', '')
     if not location_id:
         raise NonRecoverableError('No location ID provided')
 
@@ -131,7 +150,7 @@ def scale_cluster_up(delta):
                                      script=script, location_type="inline",
                                      exec_type="executable")
         script_id = response['id']
-        cloud_id = inputs['cloud_id']
+        cloud_id = inputs['mist_cloud']
 
         machine_ids = []
         for i in xrange(quantity):
@@ -173,7 +192,7 @@ def scale_cluster_up(delta):
         workctx.logger.info('Machine created')
 
         machine_id = inputs['machine_id']
-        cloud_id = inputs['cloud_id']
+        cloud_id = inputs['mist_cloud']
         script_params = "-m '{0}'".format(master_ip)
         script_id = response['id']
         job_id = client.run_script(script_id=script_id, cloud_id=cloud_id,
@@ -220,7 +239,9 @@ def scale_cluster_down(delta):
         worker_priv_ip = m.info['private_ips'][0]
         worker_selfLink = 'ip-' + str(worker_priv_ip).replace('.', '-')
         m.destroy()
-        requests.delete('http://%s:8080/api/v1/nodes/%s' % (master_ip, worker_selfLink))
+        requests.delete("https://%s/api/v1/nodes/%s, auth=HTTPBasicAuth('%s', '%s'), verify=False"
+                        % (master_ip, worker_selfLink,
+                           master.properties['auth_user'], master.properties['auth_pass']))
         if counter == delta:
             break
     workctx.logger.info('Downscaling kubernetes cluster succeeded')
