@@ -104,7 +104,8 @@ if not ctx.node.properties["configured"]:
     machine_id = ctx.instance.runtime_properties['machine_id']
     cloud_id = ctx.node.properties['parameters']['cloud_id']
     if kub_type == "master":
-        script_params = ""
+        script_params = "-u '{0}' -p '{1}'".format(ctx.node.properties['auth_user'],
+                                                   ctx.node.properties['auth_pass'])
     else:
         script_params = "-m '{0}'".format(ctx.instance.runtime_properties["master_ip"])
     job_id = client.run_script(script_id=script_id, cloud_id=cloud_id,

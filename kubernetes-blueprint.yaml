@@ -51,13 +51,13 @@ inputs:
   mist_uri:
     description: The Mist.io URI
     default: 'https://mist.io'
-  mist_username:  # username:
+  mist_username:
     description: Username of the Mist.io user
     default: ''
-  mist_password:  # password:
+  mist_password:
     description: Password of the Mist.io user
     default: ''
-  mist_token:  # api_token:
+  mist_token:
     description: Mist.io API Token
     default: ''
   coreos:
@@ -74,7 +74,7 @@ inputs:
     default: ''
   key_external_resource:
     description: True, in order to use an external resource as the SSH key
-    default: false 
+    default: false
   master_external_resource:
     description: True, in order to use an external resource as the Kubernetes master
     default: false
@@ -99,6 +99,12 @@ inputs:
   associate_floating_ip:
     description: True, in order to associate a floating IP to an Openstack instance
     default: true
+  auth_user:  # TODO can be a separate data type
+    description: The username used for accessing the Kubernetes dashboard
+    default: 'admin'
+  auth_pass:
+    description: The password used for accessing the Kubernetes dashboard
+    default: 'admin'
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # Declaration of Kubernetes node_types
@@ -141,6 +147,12 @@ node_types:
         description: >
           A dictionary of values to pass to authenticate with the Mist API
         type: cloudify.datatypes.mist.Config
+      auth_user:  # TODO
+        description: The username used for accessing the Kubernetes dashboard
+        default: 'admin'
+      auth_pass:
+        description: The password used for accessing the Kubernetes dashboard
+        default: 'admin'
     interfaces:
       cloudify.interfaces.lifecycle:
         configure:
@@ -229,6 +241,8 @@ node_templates:
         mist_username: { get_input: mist_username }
         mist_password: { get_input: mist_password }
         mist_uri: { get_input: mist_uri }
+      auth_user: { get_input: auth_user }  # TODO
+      auth_pass: { get_input: auth_pass }
 
   kube_worker:
     type: cloudify.mist.nodes.KubernetesWorker
@@ -341,12 +355,18 @@ outputs:
     value:
       ip: { get_attribute: [ kube_master, ip ] }
   kubectl:
-    description: Kubernetes shell command to verify the pods' deployment
+    description: Kubernetes shell command to verify the nodes' deployment
     value:
-      command: { concat: [ 'kubectl --server=http://', { get_attribute: [ kube_master, ip ] },
-                           ':8080 get nodes' ] }
+      command: { concat: [ 'kubectl --insecure-skip-tls-verify 
+                           --server="https://', { get_attribute: [ kube_master, ip ] },
+                           '" --username="', { get_property: [ kube_master, auth_user ] },
+                           '" --password="', { get_property: [ kube_master, auth_pass ] }, 
+                           '" cluster-info' ] }
   dashboard:
     description: Kubernetes dashboard URL
     value:
-      url: { concat: [ 'http://', { get_attribute: [ kube_master, ip ] },
-                       '/api/v1/proxy/namespaces/kube_system/services/kubernetes_dashboard' ] }
+      url: { concat: [ 'https://', { get_attribute: [ kube_master, ip ] },
+                       '/api/v1/proxy/namespaces/kube-system/services/kubernetes-dashboard' ] }
+      username: { get_property: [ kube_master, auth_user ] }
+      password: { get_property: [ kube_master, auth_pass ] }
+
