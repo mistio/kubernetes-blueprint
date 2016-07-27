@@ -22,7 +22,7 @@ ETCD_ENDPOINTS=http://${MASTER}:2379
 export CONTROLLER_ENDPOINT=http://${MASTER}:8080
 
 # Specify the version (vX.Y.Z) of Kubernetes assets to deploy
-export K8S_VER=v1.2.4_coreos.1
+export K8S_VER=v1.3.2_coreos.0
 
 # Hyperkube image repository to use.
 export HYPERKUBE_IMAGE_REPO=quay.io/coreos/hyperkube
@@ -208,6 +208,96 @@ EOF
 
 }
 
+function init_dashboard {
+    mkdir -p /srv/kubernetes/manifests
+    local TEMPLATE=/srv/kubernetes/manifests/kubernetes-dashboard.json
+    [ -f $TEMPLATE ] || {
+        echo "TEMPLATE: $TEMPLATE"
+        mkdir -p $(dirname $TEMPLATE)
+        cat << EOF > $TEMPLATE
+        {
+        	"apiVersion": "v1",
+        	"kind": "ReplicationController",
+        	"metadata": {
+        		"name": "kubernetes-dashboard-v1.1.0",
+        		"namespace": "kube-system",
+        		"labels": {
+        			"app": "kubernetes-dashboard",
+        			"version": "v1.1.0",
+        			"kubernetes.io/cluster-service": "true"
+        		}
+        	},
+        	"spec": {
+        		"replicas": 1,
+        		"selector": {
+        			"app": "kubernetes-dashboard"
+        		},
+        		"template": {
+        			"metadata": {
+        				"labels": {
+        					"app": "kubernetes-dashboard",
+        					"version": "v1.1.0",
+        					"kubernetes.io/cluster-service": "true"
+        				}
+        			},
+        			"spec": {
+        				"containers": [
+        					{
+        						"name": "kubernetes-dashboard",
+        						"image": "gcr.io/google_containers/kubernetes-dashboard-amd64:v1.1.0",
+        						"args": [
+        							"--apiserver-host=http://${MASTER}:8080"
+        						],
+        						"ports": [
+        							{
+        								"containerPort": 9090
+        							}
+        						]
+        					}
+        				]
+        			}
+        		}
+        	}
+        }
+EOF
+    }
+
+    local TEMPLATE=/srv/kubernetes/manifests/kubernetes-dashboard-svc.json
+    [ -f $TEMPLATE ] || {
+        echo "TEMPLATE: $TEMPLATE"
+        mkdir -p $(dirname $TEMPLATE)
+        cat << EOF > $TEMPLATE
+        {
+        	"kind": "Service",
+        	"apiVersion": "v1",
+        	"metadata": {
+        		"labels": {
+        			"app": "kubernetes-dashboard",
+        			"kubernetes.io/cluster-service": "true"
+        		},
+        		"name": "kubernetes-dashboard",
+        		"namespace": "kube-system"
+        	},
+        	"spec": {
+        		"ports": [
+        			{
+        				"port": 80,
+        				"targetPort": 9090
+        			}
+        		],
+        		"selector": {
+        			"app": "kubernetes-dashboard"
+        		}
+        	}
+        }
+EOF
+    }
+
+    echo "K8S: Dashboard addon"
+    curl --silent -H "Content-Type: application/json" -XPOST -d"$(cat /srv/kubernetes/manifests/kubernetes-dashboard.json)" "http://$MASTER:8080/api/v1/namespaces/kube-system/replicationcontrollers" > /dev/null | echo "Done"
+    curl --silent -H "Content-Type: application/json" -XPOST -d"$(cat /srv/kubernetes/manifests/kubernetes-dashboard-svc.json)" "http://$MASTER:8080/api/v1/namespaces/kube-system/services" > /dev/null | echo "Done"
+
+}
 init_config
 init_templates
 
@@ -229,3 +319,5 @@ done
 sleep 10
 echo "Pre-pulling hyperkube image"
 docker pull quay.io/coreos/hyperkube:$K8S_VER
+
+init_dashboard
