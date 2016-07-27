@@ -88,8 +88,8 @@ def scale_cluster_up(delta):
                     "Machine with name {0} exists".format(machine_name))
 
     key = ""
-    if inputs.get("key"):
-        key = client.keys(search=inputs["key"])
+    if inputs.get("mist_key"):
+        key = client.keys(search=inputs["mist_key"])
         if len(key):
             key = key[0]
         else:
@@ -97,15 +97,15 @@ def scale_cluster_up(delta):
     else:
         raise NonRecoverableError("key not found")
 
-    image_id = inputs.get('image_id', '')
+    image_id = inputs.get('mist_image', '')
     if not image_id:
         raise NonRecoverableError('No image ID provided')
 
-    size_id = inputs.get('size_id', '')
+    size_id = inputs.get('mist_size', '')
     if not size_id:
         raise NonRecoverableError('No size ID provided')
 
-    location_id = inputs.get('location_id', '')
+    location_id = inputs.get('mist_location', '')
     if not location_id:
         raise NonRecoverableError('No location ID provided')
 
@@ -150,7 +150,7 @@ def scale_cluster_up(delta):
                                      script=script, location_type="inline",
                                      exec_type="executable")
         script_id = response['id']
-        cloud_id = inputs['cloud_id']
+        cloud_id = inputs['mist_cloud']
 
         machine_ids = []
         for i in xrange(quantity):
@@ -192,7 +192,7 @@ def scale_cluster_up(delta):
         workctx.logger.info('Machine created')
 
         machine_id = inputs['machine_id']
-        cloud_id = inputs['cloud_id']
+        cloud_id = inputs['mist_cloud']
         script_params = "-m '{0}'".format(master_ip)
         script_id = response['id']
         job_id = client.run_script(script_id=script_id, cloud_id=cloud_id,
@@ -239,9 +239,8 @@ def scale_cluster_down(delta):
         worker_priv_ip = m.info['private_ips'][0]
         worker_selfLink = 'ip-' + str(worker_priv_ip).replace('.', '-')
         m.destroy()
-        # FIXME Basic Auth
         requests.delete("https://%s/api/v1/nodes/%s, auth=HTTPBasicAuth('%s', '%s'), verify=False"
-                        % (master_ip, worker_selfLink, 
+                        % (master_ip, worker_selfLink,
                            master.properties['auth_user'], master.properties['auth_pass']))
         if counter == delta:
             break
