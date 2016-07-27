@@ -6,6 +6,7 @@ import sys
 import os
 import uuid
 import pkg_resources
+import glob
 import requests
 
 from time import sleep
