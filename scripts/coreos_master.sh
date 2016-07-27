@@ -1,11 +1,32 @@
 #!/bin/bash
 set -e
 
+while getopts "u:p:" OPTION
+do
+    case $OPTION in
+        u)
+          AUTH_USERNAME=$OPTARG
+          ;;
+        p)
+          AUTH_PASSWORD=$OPTARG
+          ;;
+        ?)
+          exit
+          ;;
+    esac
+done
+
+AUTH_USERNAME=${AUTH_USERNAME:-admin}
+AUTH_PASSWORD=${AUTH_PASSWORD:-admin}
+
+mkdir -p /etc/kubernetes/auth
+echo "$AUTH_USERNAME,$AUTH_PASSWORD,1" > /etc/kubernetes/auth/basicauth.csv
+
 # List of etcd servers (http://ip:port), comma separated
 export ETCD_ENDPOINTS=http://127.0.0.1:2379
 
 # Specify the version (vX.Y.Z) of Kubernetes assets to deploy
-export K8S_VER=v1.2.4_coreos.1
+export K8S_VER=v1.3.2_coreos.0
 
 # Hyperkube image repository to use.
 export HYPERKUBE_IMAGE_REPO=quay.io/coreos/hyperkube
@@ -186,6 +207,10 @@ metadata:
   namespace: kube-system
 spec:
   hostNetwork: true
+  volumes:
+  - hostPath:
+      path: /etc/kubernetes/auth
+    name: kubernetes-auth
   containers:
   - name: kube-apiserver
     image: ${HYPERKUBE_IMAGE_REPO}:$K8S_VER
@@ -201,6 +226,7 @@ spec:
     - --secure-port=443
     - --advertise-address=${ADVERTISE_IP}
     - --service-account-lookup=false
+    - --basic-auth-file=/etc/kubernetes/auth/basicauth.csv
     # - --admission-control=NamespaceLifecycle,LimitRanger,ServiceAccount,ResourceQuota
     # - --tls-cert-file=/etc/kubernetes/ssl/apiserver.pem
     # - --tls-private-key-file=/etc/kubernetes/ssl/apiserver-key.pem
@@ -214,6 +240,9 @@ spec:
     - containerPort: 8080
       hostPort: 8080
       name: local
+    volumeMounts:
+    - mountPath: /etc/kubernetes/auth
+      name: kubernetes-auth
 EOF
     }
 
@@ -575,141 +604,6 @@ EOF
 EOF
     }
 
-    local TEMPLATE=/srv/kubernetes/manifests/heapster-dc.json
-    [ -f $TEMPLATE ] || {
-        echo "TEMPLATE: $TEMPLATE"
-        mkdir -p $(dirname $TEMPLATE)
-        cat << EOF > $TEMPLATE
-{
-  "apiVersion": "extensions/v1beta1",
-  "kind": "Deployment",
-  "metadata": {
-    "labels": {
-      "k8s-app": "heapster",
-      "kubernetes.io/cluster-service": "true",
-      "version": "v1.0.2"
-    },
-    "name": "heapster-v1.0.2",
-    "namespace": "kube-system"
-  },
-  "spec": {
-    "replicas": 1,
-    "selector": {
-      "matchLabels": {
-        "k8s-app": "heapster",
-        "version": "v1.0.2"
-      }
-    },
-    "template": {
-      "metadata": {
-        "labels": {
-          "k8s-app": "heapster",
-          "version": "v1.0.2"
-        }
-      },
-      "spec": {
-        "containers": [
-          {
-            "command": [
-              "/heapster",
-              "--source=kubernetes.summary_api:''",
-              "--metric_resolution=60s"
-            ],
-            "image": "gcr.io/google_containers/heapster:v1.0.2",
-            "name": "heapster",
-            "resources": {
-              "limits": {
-                "cpu": "100m",
-                "memory": "250Mi"
-              },
-              "requests": {
-                "cpu": "100m",
-                "memory": "250Mi"
-              }
-            }
-          },
-          {
-            "command": [
-              "/pod_nanny",
-              "--cpu=100m",
-              "--extra-cpu=0m",
-              "--memory=250Mi",
-              "--extra-memory=4Mi",
-              "--threshold=5",
-              "--deployment=heapster-v1.0.2",
-              "--container=heapster",
-              "--poll-period=300000"
-            ],
-            "env": [
-              {
-                "name": "MY_POD_NAME",
-                "valueFrom": {
-                  "fieldRef": {
-                    "fieldPath": "metadata.name"
-                  }
-                }
-              },
-              {
-                "name": "MY_POD_NAMESPACE",
-                "valueFrom": {
-                  "fieldRef": {
-                    "fieldPath": "metadata.namespace"
-                  }
-                }
-              }
-            ],
-            "image": "gcr.io/google_containers/addon-resizer:1.0",
-            "name": "heapster-nanny",
-            "resources": {
-              "limits": {
-                "cpu": "50m",
-                "memory": "100Mi"
-              },
-              "requests": {
-                "cpu": "50m",
-                "memory": "100Mi"
-              }
-            }
-          }
-        ]
-      }
-    }
-  }
-}
-EOF
-    }
-
-    local TEMPLATE=/srv/kubernetes/manifests/heapster-svc.json
-    [ -f $TEMPLATE ] || {
-        echo "TEMPLATE: $TEMPLATE"
-        mkdir -p $(dirname $TEMPLATE)
-        cat << EOF > $TEMPLATE
-{
-  "kind": "Service",
-  "apiVersion": "v1",
-  "metadata": {
-    "name": "heapster",
-    "namespace": "kube-system",
-    "labels": {
-      "kubernetes.io/cluster-service": "true",
-      "kubernetes.io/name": "Heapster"
-    }
-  },
-  "spec": {
-    "ports": [
-      {
-        "port": 80,
-        "targetPort": 8082
-      }
-    ],
-    "selector": {
-      "k8s-app": "heapster"
-    }
-  }
-}
-EOF
-    }
-
     local TEMPLATE=/etc/flannel/options.env
     [ -f $TEMPLATE ] || {
         echo "TEMPLATE: $TEMPLATE"
@@ -778,9 +672,6 @@ function start_addons {
     echo "K8S: DNS addon"
     curl --silent -H "Content-Type: application/json" -XPOST -d"$(cat /srv/kubernetes/manifests/kube-dns-rc.json)" "http://127.0.0.1:8080/api/v1/namespaces/kube-system/replicationcontrollers" > /dev/null
     curl --silent -H "Content-Type: application/json" -XPOST -d"$(cat /srv/kubernetes/manifests/kube-dns-svc.json)" "http://127.0.0.1:8080/api/v1/namespaces/kube-system/services" > /dev/null
-    echo "K8S: Heapster addon"
-    curl --silent -H "Content-Type: application/json" -XPOST -d"$(cat /srv/kubernetes/manifests/heapster-dc.json)" "http://127.0.0.1:8080/apis/extensions/v1beta1/namespaces/kube-system/deployments" > /dev/null
-    curl --silent -H "Content-Type: application/json" -XPOST -d"$(cat /srv/kubernetes/manifests/heapster-svc.json)" "http://127.0.0.1:8080/api/v1/namespaces/kube-system/services" > /dev/null
 }
 
 function enable_calico_policy {
