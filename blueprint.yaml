@@ -103,7 +103,7 @@ inputs:
     default: 'admin'
   auth_pass:
     description: The password used for accessing the Kubernetes dashboard
-    default: 'admin'
+    default: ''
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # Declaration of Kubernetes node_types
@@ -151,7 +151,7 @@ node_types:
         default: 'admin'
       auth_pass:
         description: The password used for accessing the Kubernetes dashboard
-        default: 'admin'
+        default: ''
     interfaces:
       cloudify.interfaces.lifecycle:
         configure:
