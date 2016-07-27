@@ -294,8 +294,8 @@ EOF
     }
 
     echo "K8S: Dashboard addon"
-    curl --silent -H "Content-Type: application/json" -XPOST -d"$(cat /srv/kubernetes/manifests/kubernetes-dashboard.json)" "http://$MASTER:8080/api/v1/namespaces/kube-system/replicationcontrollers" > /dev/null
-    curl --silent -H "Content-Type: application/json" -XPOST -d"$(cat /srv/kubernetes/manifests/kubernetes-dashboard-svc.json)" "http://$MASTER:8080/api/v1/namespaces/kube-system/services" > /dev/null
+    curl --silent -H "Content-Type: application/json" -XPOST -d"$(cat /srv/kubernetes/manifests/kubernetes-dashboard.json)" "http://$MASTER:8080/api/v1/namespaces/kube-system/replicationcontrollers" > /dev/null | echo "Done"
+    curl --silent -H "Content-Type: application/json" -XPOST -d"$(cat /srv/kubernetes/manifests/kubernetes-dashboard-svc.json)" "http://$MASTER:8080/api/v1/namespaces/kube-system/services" > /dev/null | echo "Done"
 
 }
 init_config
