@@ -1,10 +1,8 @@
 key: MyKey 
 cloud_id: 1b2edcb11e524e2aa5fdd89cf1e24278 
-image_id: ami-d91428b7
-coreos: false
+image_id: ami-d0e21bb1
+coreos: true 
 size_id: m1.medium
 location_id: '0'
-monitoring: false
 name: GigaDemoNewWorker
 delta: 1 
-networks: []

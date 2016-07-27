@@ -1,10 +1,7 @@
 mist_uri: http://172.17.0.1/
 ssh_user: core 
-# key_name: MyKey
 master_key: c4b6efa8d0a74f989d2d8a0fae7a04d1                                     
 worker_key: c4b6efa8d0a74f989d2d8a0fae7a04d1                                     
-private_master_key_path: ~/.ssh/id_rsa_cfy                                       
-private_worker_key_path: ~/.ssh/id_rsa_cfy 
 cloud_id: f9622b1679134189926aa2c01e465fc6 
 image_id: 0adee2e0-c414-42f3-b9ca-b61671924055
 coreos: true
@@ -13,12 +10,5 @@ location_id: '0'
 monitoring: false
 worker_name: GigaDemoFirstWorker
 master_name: GigaDemoMaster
-key_external_resource: true
-worker_external_resource: false
-worker_external_resource_id: 'i-ebb8c563'
-worker_configured: false
-master_external_resource: false
-master_external_resource_id: 'i-3fb9c4b7'
-master_configured: false
 networks: ["d9e7836f-1c40-4bed-9921-772e68d62646"]
-api_token: 544be89e3016f2fb0ba433802ee432da2e672cd7fe8e4ccc6926e1a54e835eec 
+mist_token: 544be89e3016f2fb0ba433802ee432da2e672cd7fe8e4ccc6926e1a54e835eec 
