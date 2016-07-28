@@ -73,7 +73,7 @@ print('=======================')
 print(os.getcwd())
 print('=======================')
 
-_storage = ('../local-storage/local/node-instances')
+_storage = os.path.join(os.getcwd(), 'local-storage/local/node-instances')
 _instance_file = open(os.path.join(_storage, node_instance['id']), 'w')
 _instance_file.write(json.dumps(node_instance))
 _instance_file.close()
