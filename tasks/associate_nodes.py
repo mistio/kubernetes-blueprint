@@ -18,18 +18,14 @@ node_instance = {}
 kwargs = {}
 kwargs['name'] = params.minion_id
 
-if 'minions' not in ctx.instance.runtime_properties:
-    ctx.instance.runtime_properties['minions'] = []
-ctx.instance.runtime_properties['minions'].append(kwargs['name'])
-
 client = connection.MistConnectionClient(properties=ctx.node.properties)
 machine = client.other_machine(kwargs)
 
 node_instance['node_id'] = 'kube_worker'
 node_instance['name'] = 'kube_worker'
-node_instance['id'] = 'kube_worker' + ''.join(choice(string.letters + string.digits) for _ in range(5))
-node_instance['host_id'] = 'kube_worker' + ''.join(choice(string.letters + string.digits) for _ in range(5))
-node_instance['version'] = 9
+node_instance['id'] = ('kube_worker_' + ''.join(choice(string.letters + string.digits) for _ in range(5))).lower()
+node_instance['host_id'] = node_instance['id']
+node_instance['version'] = 9  # TODO
 node_instance['state'] = 'started'
 node_instance['runtime_properties'] = {
     'info': {
@@ -69,11 +65,6 @@ node_instance['relationships'] = [
     }
 ]
 
-print('=======================')
-print(os.getcwd())
-print('=======================')
-
 _storage = os.path.join(os.getcwd(), 'local-storage/local/node-instances')
-_instance_file = open(os.path.join(_storage, node_instance['id']), 'w')
-_instance_file.write(json.dumps(node_instance))
-_instance_file.close()
+with open(os.path.join(_storage, node_instance['id']), 'w') as _instance_file:
+    _instance_file.write(json.dumps(node_instance))
