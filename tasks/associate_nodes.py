@@ -25,10 +25,6 @@ ctx.instance.runtime_properties['minions'].append(kwargs['name'])
 client = connection.MistConnectionClient(properties=ctx.node.properties)
 machine = client.other_machine(kwargs)
 
-print('=======================')
-print(machine.info)
-print('=======================')
-
 node_instance['node_id'] = 'kube_worker'
 node_instance['name'] = 'kube_worker'
 node_instance['id'] = 'kube_worker' + ''.join(choice(string.letters + string.digits) for _ in range(5))
@@ -72,6 +68,10 @@ node_instance['relationships'] = [
         'type': 'cloudify.relationships.connected_to'
     }
 ]
+
+print('=======================')
+print(os.getcwd())
+print('=======================')
 
 _storage = ('../local-storage/local/node-instances')
 _instance_file = open(os.path.join(_storage, node_instance['id']), 'w')
