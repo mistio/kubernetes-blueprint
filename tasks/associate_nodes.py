@@ -74,6 +74,6 @@ node_instance['relationships'] = [
 ]
 
 _storage = ('../local-storage/local/node-instances')
-with open(os.path.join(_storage, node_instance['id']), 'w') as _instance_file:
-    _instance_file.write(json.dumps(node_instance))
-    _instance_file.close()
+_instance_file = open(os.path.join(_storage, node_instance['id']), 'w')
+_instance_file.write(json.dumps(node_instance))
+_instance_file.close()
