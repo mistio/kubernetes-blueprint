@@ -242,7 +242,7 @@ node_templates:
       use_external_resource: false
       resource_id: ''
       configured: false
-      coreos: {get_input: coreos}
+      coreos: { get_input: coreos }
       parameters:
         key: { get_input: mist_key_worker }
         cloud_id: { get_input: mist_cloud_1 }
