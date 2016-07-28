@@ -14,9 +14,9 @@ try:
     # destroying kubernetes master
     client = connection.MistConnectionClient()
     client.machine.destroy()
-    # destroying extra minions
+    # destroying extra kubernetes workers 
     minions = ctx.instance.runtime_properties.get('minions', [])
     if minions:
-        client.undeploy_minions(minions)
+        client.destroy_machines(minions)
 except Exception as exc:
     raise NonRecoverableError(exc)
