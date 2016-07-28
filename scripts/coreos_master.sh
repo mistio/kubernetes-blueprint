@@ -27,7 +27,7 @@ AUTH_PASSWORD=${AUTH_PASSWORD:-admin}
 PUBLIC_IP=${PUBLIC_IP:-127.0.0.1}
 FQDN=${FQDN:-kubernetes.local}
 mkdir -p /etc/kubernetes/auth
-echo "$AUTH_USERNAME,$AUTH_PASSWORD,1" > /etc/kubernetes/auth/basicauth.csv
+echo "$AUTH_PASSWORD,$AUTH_USERNAME,1" > /etc/kubernetes/auth/basicauth.csv
 
 # List of etcd servers (http://ip:port), comma separated
 export ETCD_ENDPOINTS=http://127.0.0.1:2379
