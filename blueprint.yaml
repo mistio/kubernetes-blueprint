@@ -321,7 +321,7 @@ workflows:
         description: Location ID (mandatory)
         type: string
         default: ''
-      name:
+      worker_name:
         description: The name of the new Kubernetes Worker (mandatory)
         type: string
         default: ''

@@ -79,7 +79,7 @@ def scale_cluster_up(delta):
     if inputs['use_external_resource']:
         machine = mist_client.other_machine(inputs)  # FIXME
 
-    machine_name = inputs["name"]
+    machine_name = inputs["worker_name"]
     machines = cloud.machines(search=machine_name)
     if len(machines):
         for m in machines:
@@ -224,7 +224,7 @@ def scale_cluster_down(delta):
     master_machine = mist_client.machine
     master_ip = master_machine.info['public_ips'][0]
 
-    worker_name = inputs.get('name')
+    worker_name = inputs.get('worker_name')
     machines = cloud.machines(search=worker_name)
     if not machines:
         workctx.logger.info('%s minion node(s) already undeployed', worker_name)
