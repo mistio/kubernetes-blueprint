@@ -42,7 +42,7 @@ node_instance['runtime_properties'] = {
         'uuid': machine.info['uuid'],
         'can_destroy': machine.info['can_destroy'],
         'extra': machine.info['extra'],
-        'name': machine['name'],
+        'name': machine.info['name'],
         'missing_since': machine.info['missing_since'],
         'tags': machine.info['tags'],
         'can_stop': machine.info['can_stop'],
