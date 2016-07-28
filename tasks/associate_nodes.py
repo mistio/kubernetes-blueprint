@@ -16,11 +16,11 @@ except ImportError:
 
 node_instance = {}
 kwargs = {}
-kwargs['resource_id'] = params.minion_id
+kwargs['name'] = params.minion_id
 
 if 'minions' not in ctx.instance.runtime_properties:
     ctx.instance.runtime_properties['minions'] = []
-ctx.instance.runtime_properties['minions'].append(kwargs['resource_id'])
+ctx.instance.runtime_properties['minions'].append(kwargs['name'])
 
 client = connection.MistConnectionClient(properties=ctx.node.properties)
 machine = client.other_machine(kwargs)
