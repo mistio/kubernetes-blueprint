@@ -1,5 +1,4 @@
-# Mist Cloudify Kubernetes Cluster Example
-
+# Mist-Cloudify Kubernetes Cluster Example
 
 This repository contains a blueprint for installing a kubernetes cluster through mist.io.<br>
 The aforementioned kubernetes cluster consists of:
@@ -27,22 +26,23 @@ source bin/activate
 ./bin/pip install cloudify https://github.com/mistio/mist.client/archive/master.zip
 git clone https://github.com/mistio/cloudify-mist-plugin
 cd cloudify-mist-plugin
-./bin/python setup.py  develop
+python setup.py  develop
 cd ..
 ```
 
 ## Step 2: Initialize the environment
 
-First of all, you need to add a cloud to your mist.io account. Login to the [dashboard](https://mist.io) and click "ADD CLOUD".
-Once you have completed the aforementioned step, retrieve your cloud's ID by clicking on the tile containing your cloud's name
-on the mist.io home screen. The ID will be used later on as part of the required blueprint inputs.
+First of all, you need to add a cloud to your mist.io account. Login to the [mist.io dashboard](https://mist.io) and click on
+the "ADD CLOUD" button. Once you have completed the aforementioned step, retrieve your cloud's ID by clicking on the tile
+containing your cloud's name on the mist.io home screen. The ID will be used later on as part of the required blueprint inputs.
 
 You will also need  an SSH key. Visit the Keys tab and generate/upload a key. You can use separate keys for each machine.
-Once again, note the name/ID of the newly created SSH key, as it will be by our inputs file.
+Once again, note the name/ID of the newly created SSH key, as it will be used by our inputs file.
 
-Now visit your [account page](https://mist.io/account) and create a token under the API TOKENS tabs.
+Then, visit your [account page](https://mist.io/account) and create a token under the API TOKENS tabs.
 
-Now, check the inputs files (in .yaml format) under the inputs directory section in order to use them as a guide to fill in the fields accordingly.
+Now, check the inputs files (in .yaml format) under the inputs directory in order to use them as a guide to fill in
+your resources' IDs accordingly.
 
 Here's a sample:<br>
 ```
@@ -58,7 +58,7 @@ worker_name: KubernetesWorker
 master_name: KubernetesMaster
 ```
 
-<br>Afterwards, run:
+Afterwards, run:
 
 `./bin/cfy local init -p blueprint.yaml -i inputs/<file_name>.yaml`<br>
 
@@ -66,15 +66,15 @@ This command will initialize your working directory with the given blueprint.
 
 The output would be something like this:<br>
 ```
-(kubernetes-blueprint)user@user:~/kubernetes-blueprint$ cfy local init -p blueprint.yaml -i inputs/mist.yaml
+(kubernetes-blueprint)user@user:~/kubernetes-blueprint$ ./bin/cfy local init -p blueprint.yaml -i inputs/mist_ec2.yaml
 Processing Inputs Source: inputs/mist_ec2.yaml
 Initiated blueprint.yaml
 If you make changes to the blueprint, run 'cfy local init -p mist-blueprint.yaml' again to apply them
 ```
 
-<br>Now, you can run any type of workflows using your blueprint.<br>
+Now, you can run any type of workflows using your blueprint.<br>
 
-## Step 2: Install a kubernetes cluster
+## Step 2: Install your Kubernetes cluster
 
 You are now ready to run the `install` workflow:<br>
 
@@ -101,11 +101,13 @@ As soon as the installation has been succesffully completed, you should see your
 [mist.io machines page](https://mist.io/#/machines).<br>
 
 At this point, you may specify the command `./bin/cfy local outputs` in order to retrieve the blueprint's outputs, which consist of a
-dashboard URL (alongide the required credentials) you may visit in order to verify the deployment of your kubernetes cluster and further
-explore it, as well as a `kubectl` command you may run directly in your shell. In case you do not have `kubectl` installed, simply run:<br>
+dashboard URL (alongside the required credentials) you may visit in order to verify the deployment of your kubernetes cluster and further
+explore it, as well as a `kubectl` command you may run directly in your shell.
+
+In case you do not have `kubectl` installed, simply run:<br>
 `curl -O https://storage.googleapis.com/kubernetes-release/release/v1.1.8/bin/linux/amd64/kubectl && chmod +x kubectl`.
 
-## Step 3: Scale cluster
+## Step 3: Scale your Kubernetes cluster
 
 To scale the cluster up first edit the `inputs/new_worker.yaml` file with the proper inputs.
 Edit the `delta` parameter to specify the number of machines to be added to the cluster.
@@ -136,7 +138,7 @@ machines should be removed (destroyed) from the cluster. Then, run:<br>
 
 `./bin/cfy local execute -w scale_cluster -p inputs/remove_worker.yaml`
 
-## Step 4: Uninstall
+## Step 4: Uninstall the Kubernetes cluster
 
 To uninstall the kubernetes cluster and destroy all the machines run the `uninstall` workflow:<br>
 
