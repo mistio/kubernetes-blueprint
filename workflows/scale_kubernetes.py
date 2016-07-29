@@ -241,7 +241,8 @@ def scale_cluster_down(delta):
         m.destroy()
         workctx.logger.info('Removing node reference from the kubernetes cluster')
         requests.delete("https://%s/api/v1/nodes/%s, auth=HTTPBasicAuth('%s', '%s'), verify=False"
-                        % (master_ip, worker_selfLink, inputs['auth_user'], inputs['auth_pass']))
+                        % (master_ip, worker_selfLink,
+                           master.properties['auth_user'], master.properties['auth_pass']))
         if counter == delta:
             break
     workctx.logger.info('Downscaling kubernetes cluster succeeded')

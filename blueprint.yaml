@@ -292,14 +292,8 @@ node_templates:
 
 workflows:
   scale_cluster:
-    mapping: tasks/scale_kubernetes.py
+    mapping: workflows/scale_kubernetes.py
     parameters:
-      auth_user:
-        type: string
-        default: { get_attribute: [ kube_master, auth_user ] }
-      auth_pass:
-        type: string
-        default: { get_attribute: [ kube_master, auth_pass ] }
       use_external_resource:
         type: boolean
         default: false
