@@ -67,7 +67,7 @@ inputs:
   coreos:
     description: True, if the image is CoreOS
     type: boolean
-    default: true 
+    default: true
   monitoring:
     description: True, if monitoring should be enabled for the machine
     type: boolean
@@ -122,7 +122,7 @@ node_types:
       coreos:
         description: Indicates whether Kubernetes is based on a CoreOS image
         type: boolean
-        default: true 
+        default: true
       master:
         description: Indicates the Kubernetes Master node
         type: boolean
@@ -153,7 +153,6 @@ node_types:
               type: integer
               default: 30
         associate: tasks/associate_nodes.py
-        delete: tasks/undeploy_kubernetes.py
 
   cloudify.mist.nodes.KubernetesWorker:
     derived_from: cloudify.mist.nodes.Server
@@ -182,7 +181,7 @@ node_types:
       coreos:
         description: Indicates whether Kubernetes is based on a CoreOS image
         type: boolean
-        default: true 
+        default: true
       master:
         description: Indicates the Kubernetes Master node
         type: boolean
@@ -211,10 +210,10 @@ node_templates:
     properties:
       cloudify_agent:
         user: { get_input: ssh_user }
-        key: '' 
-      use_external_resource: false 
-      resource_id: '' 
-      configured: false 
+        key: ''
+      use_external_resource: false
+      resource_id: ''
+      configured: false
       coreos: { get_input: coreos }
       parameters:
         key: { get_input: mist_key_master }
@@ -239,11 +238,11 @@ node_templates:
     properties:
       cloudify_agent:
         user: { get_input: ssh_user }
-        key: '' 
-      use_external_resource: false 
-      resource_id: '' 
-      configured: false 
-      coreos: {get_input: coreos}
+        key: ''
+      use_external_resource: false
+      resource_id: ''
+      configured: false
+      coreos: { get_input: coreos }
       parameters:
         key: { get_input: mist_key_worker }
         cloud_id: { get_input: mist_cloud_1 }
@@ -268,7 +267,7 @@ node_templates:
     properties:
       use_external_resource: false
       resource_id: { get_input: mist_key_master }
-      private_key_path: '' 
+      private_key_path: ''
       mist_config:
         mist_token: { get_input: mist_token }
         mist_username: { get_input: mist_username }
@@ -280,7 +279,7 @@ node_templates:
     properties:
       use_external_resource: false
       resource_id: { get_input: mist_key_worker }
-      private_key_path: '' 
+      private_key_path: ''
       mist_config:
         mist_token: { get_input: mist_token }
         mist_username: { get_input: mist_username }
@@ -293,7 +292,7 @@ node_templates:
 
 workflows:
   scale_cluster:
-    mapping: tasks/scale_kubernetes.py
+    mapping: workflows/scale_kubernetes.py
     parameters:
       use_external_resource:
         type: boolean
@@ -315,7 +314,7 @@ workflows:
         default: ''
       mist_size:
         description: Size ID (mandatory)
-        type: string 
+        type: string
         default: ''
       mist_location:
         description: Location ID (mandatory)
@@ -335,7 +334,7 @@ workflows:
       coreos:
         description: Whether the machine's image is CoreOS (mandatory)
         type: boolean
-        default: true 
+        default: true
       delta:
         description: >
             Denotes how many worker nodes should be added/removed to/from the
@@ -360,10 +359,10 @@ outputs:
   kubectl:
     description: Kubernetes shell command to verify the nodes' deployment
     value:
-      command: { concat: [ 'kubectl --insecure-skip-tls-verify 
+      command: { concat: [ 'kubectl --insecure-skip-tls-verify
                            --server="https://', { get_attribute: [ kube_master, ip ] },
                            '" --username="', { get_attribute: [ kube_master, auth_user ] },
-                           '" --password="', { get_attribute: [ kube_master, auth_pass ] }, 
+                           '" --password="', { get_attribute: [ kube_master, auth_pass ] },
                            '" cluster-info' ] }
   dashboard:
     description: Kubernetes dashboard URL
@@ -372,4 +371,3 @@ outputs:
                        '/api/v1/proxy/namespaces/kube-system/services/kubernetes-dashboard' ] }
       username: { get_attribute: [ kube_master, auth_user ] }
       password: { get_attribute: [ kube_master, auth_pass ] }
-

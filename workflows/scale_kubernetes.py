@@ -239,6 +239,7 @@ def scale_cluster_down(delta):
         worker_priv_ip = m.info['private_ips'][0]
         worker_selfLink = 'ip-' + str(worker_priv_ip).replace('.', '-')
         m.destroy()
+        workctx.logger.info('Removing node reference from the kubernetes cluster')
         requests.delete("https://%s/api/v1/nodes/%s, auth=HTTPBasicAuth('%s', '%s'), verify=False"
                         % (master_ip, worker_selfLink,
                            master.properties['auth_user'], master.properties['auth_pass']))
