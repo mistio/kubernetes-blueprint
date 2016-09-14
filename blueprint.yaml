@@ -63,7 +63,7 @@ inputs:
   ssh_user:
     description: The SSH user
     type: string
-    default: ''
+    default: 'core'
   coreos:
     description: True, if the image is CoreOS
     type: boolean
@@ -321,18 +321,20 @@ workflows:
         type: string
         default: ''
       worker_name:
-        description: The name of the new Kubernetes Worker (mandatory)
+        description: >
+            The name of the worker instance to be added/removed to/from the 
+            Kubernetes cluster (mandatory)
         type: string
         default: ''
       monitoring:
-        description: Whether to nable monitoring on the machine or not (mandatory)
+        description: Whether to enable monitoring on the machine or not
         type: boolean
         default: false
       networks:
-        description: The network IDs that will be used by the machine (mandatory
+        description: The network IDs that will be used by the machine
         default: []
       coreos:
-        description: Whether the machine's image is CoreOS (mandatory)
+        description: Whether the machine's image is CoreOS
         type: boolean
         default: true
       delta:
