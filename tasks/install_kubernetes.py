@@ -7,12 +7,12 @@ import uuid
 import pkg_resources
 import glob
 
-from time import sleep
+from time import time, sleep
 
 try:
     import connection
 except ImportError:
-    sys.path.insert(0, 'lib/python2.7/site-packages/plugin/')   # TODO
+    sys.path.insert(0, 'lib/python2.7/site-packages/plugin/')  # TODO
     import connection
 
 
@@ -119,10 +119,14 @@ if not ctx.node.properties["configured"]:
                                script_params=script_params, su=True)
     ctx.logger.info("Kubernetes {0} installation started".format(kub_type))
     job_id = job_id["job_id"]
+    started_at = job_id["started_at"] 
     job = client.get_job(job_id)
     while True:
         if job["error"]:
             raise NonRecoverableError("Not able to install kubernetes {0}".format(kub_type))
+        if time() > started_at + 60 * 30:
+            raise NonRecoverableError("Kubernetes {0} installation script "
+                                      "is taking too long!".format(kub_type))
         if job["finished_at"]:
             break
         sleep(10)
