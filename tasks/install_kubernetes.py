@@ -70,7 +70,6 @@ else:
         kube_master.runtime_properties.get('script_id', '')
 
 if not is_configured:
-    # TODO upload ONLY once
     if not is_master and ctx.instance.runtime_properties['script_id']:
         ctx.logger.info('Found existing Kubernetes installation script with '
                         'resource ID: %s', ctx.instance.runtime_properties[
@@ -100,7 +99,7 @@ if not is_configured:
     ctx.logger.info('Deploying Kubernetes on %s node...', kube_type.upper())
     machine_id = ctx.instance.runtime_properties['machine_id']
     cloud_id = ctx.node.properties['parameters']['cloud_id']
-    script_id = ctx.instance.runtime_propertiesp['script_id']
+    script_id = ctx.instance.runtime_properties['script_id']
     # TODO job_id???
     job_id = client.run_script(script_id=script_id, cloud_id=cloud_id,
                                machine_id=machine_id,
@@ -130,6 +129,6 @@ if not is_configured:
     # TODO deprecate -> ONLY print err, if exists
 #    ctx.logger.info(job["logs"][2]['stdout'])
 #    ctx.logger.info(job["logs"][2]['extra_output'])
-    from ipdb import set_trace; set_trace()
+    from ipdb import set_trace; set_trace()  # TODO REMOVE
     ctx.logger.info('Kubernetes %s installation succeeded!', kube_type.upper())
 
