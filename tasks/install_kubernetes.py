@@ -127,10 +127,9 @@ if not is_configured:
                         kube_type.upper())
         sleep(5)
         job = client.get_job(job_id)
-        ctx.logger.info('*********** Job from get_job --> %s', job)
+    ctx.logger.info('*********** Job from get_job --> %s', job)
     # TODO deprecate -> ONLY print err, if exists
 #    ctx.logger.info(job["logs"][2]['stdout'])
 #    ctx.logger.info(job["logs"][2]['extra_output'])
-    ctx.logger.info()
     ctx.logger.info('Kubernetes %s installation succeeded!', kube_type.upper())
 
