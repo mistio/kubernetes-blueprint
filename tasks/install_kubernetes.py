@@ -106,7 +106,7 @@ if not is_configured:
                                script_params=script_params, su=True)
 
     job_id = job_id['job_id']
-    started_at = job_id['started_at'] 
+#    started_at = job_id['started_at'] 
     job = client.get_job(job_id)
 
     while True:
@@ -114,11 +114,11 @@ if not is_configured:
             # TODO log error, if exists, then raise
             raise NonRecoverableError('Kubernetes %s installation failed',
                                       kube_type.upper())
-        if time() > started_at + SCRIPT_TIMEOUT:
-            # TODO log debug, if output exists, then raise
-            raise NonRecoverableError('Kubernetes %s installation script '
-                                      'is taking too long! Giving up...',
-                                      kube_type.upper())
+#        if time() > started_at + SCRIPT_TIMEOUT:
+#            # TODO log debug, if output exists, then raise
+#            raise NonRecoverableError('Kubernetes %s installation script '
+#                                      'is taking too long! Giving up...',
+#                                      kube_type.upper())
         if job['finished_at']:
             break
 
