@@ -104,6 +104,7 @@ if not is_configured:
     job_id = client.run_script(script_id=script_id, cloud_id=cloud_id,
                                machine_id=machine_id,
                                script_params=script_params, su=True)
+    ctx.logger.info('*********** Job ID from run_script --> %s', job_id)
 
     job_id = job_id['job_id']
 #    started_at = job_id['started_at'] 
@@ -126,9 +127,10 @@ if not is_configured:
                         kube_type.upper())
         sleep(5)
         job = client.get_job(job_id)
+        ctx.logger.info('*********** Job from get_job --> %s', job)
     # TODO deprecate -> ONLY print err, if exists
 #    ctx.logger.info(job["logs"][2]['stdout'])
 #    ctx.logger.info(job["logs"][2]['extra_output'])
-    from ipdb import set_trace; set_trace()  # TODO REMOVE
+    ctx.logger.info()
     ctx.logger.info('Kubernetes %s installation succeeded!', kube_type.upper())
 
