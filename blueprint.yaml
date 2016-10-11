@@ -63,11 +63,11 @@ inputs:
   ssh_user:
     description: The SSH user
     type: string
-    default: 'core'
-  coreos:
-    description: True, if the image is CoreOS
-    type: boolean
-    default: true
+    default: ''
+#  coreos:
+#    description: True, if the image is CoreOS
+#    type: boolean
+#    default: false
   monitoring:
     description: True, if monitoring should be enabled for the machine
     type: boolean
@@ -119,10 +119,10 @@ node_types:
         description: Indicates whether Kubernetes is already configured
         type: boolean
         default: false
-      coreos:
-        description: Indicates whether Kubernetes is based on a CoreOS image
-        type: boolean
-        default: true
+#      coreos:
+#        description: Indicates whether Kubernetes is based on a CoreOS image
+#        type: boolean
+#        default: { get_input: coreos }
       master:
         description: Indicates the Kubernetes Master node
         type: boolean
@@ -178,10 +178,10 @@ node_types:
           the mist.client.backend.create_machine command (backend_id, image_id
           size_id, location_id, name, monitoring, ssh_user, networks )
         default: {}
-      coreos:
-        description: Indicates whether Kubernetes is based on a CoreOS image
-        type: boolean
-        default: true
+#      coreos:
+#        description: Indicates whether Kubernetes is based on a CoreOS image
+#        type: boolean
+#        default: { get_input: coreos }
       master:
         description: Indicates the Kubernetes Master node
         type: boolean
@@ -214,7 +214,7 @@ node_templates:
       use_external_resource: false
       resource_id: ''
       configured: false
-      coreos: { get_input: coreos }
+#      coreos: { get_input: coreos }
       parameters:
         key: { get_input: mist_key_master }
         cloud_id: { get_input: mist_cloud_1 }
@@ -242,7 +242,7 @@ node_templates:
       use_external_resource: false
       resource_id: ''
       configured: false
-      coreos: { get_input: coreos }
+#      coreos: { get_input: coreos }
       parameters:
         key: { get_input: mist_key_worker }
         cloud_id: { get_input: mist_cloud_1 }
@@ -322,8 +322,8 @@ workflows:
         default: ''
       worker_name:
         description: >
-            The name of the worker instance to be added/removed to/from the 
-            Kubernetes cluster (mandatory)
+          The name of the worker instance to be added/removed to/from the 
+          Kubernetes cluster (mandatory)
         type: string
         default: ''
       monitoring:
@@ -333,15 +333,15 @@ workflows:
       networks:
         description: The network IDs that will be used by the machine
         default: []
-      coreos:
-        description: Whether the machine's image is CoreOS
-        type: boolean
-        default: true
+#      coreos:
+#        description: Whether the machine's image is CoreOS
+#        type: boolean
+#        default: true
       delta:
         description: >
-            Denotes how many worker nodes should be added/removed to/from the
-            kubernetes cluster. A positive number denotes increase of
-            instances, while a negative one denotes decrease of instances
+          Denotes how many worker nodes should be added/removed to/from the
+          kubernetes cluster. A positive number denotes increase of instances,
+          while a negative one denotes decrease of instances
         type: integer
         default: 0
 
