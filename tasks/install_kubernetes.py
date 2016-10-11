@@ -78,7 +78,7 @@ if not is_configured:
     else:
         script_name = 'install_kubernetes_%s' % uuid.uuid1().hex 
         ctx.logger.info('Uploading Kubernetes installation script [%s]...',
-                        scipt_name)
+                        script_name)
         script = client.add_script(name=script_name, script=kubernetes_script,
                                    location_type='inline',
                                    exec_type='executable')
