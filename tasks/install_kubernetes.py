@@ -20,12 +20,15 @@ except ImportError:
     import connection
 
 
-resource_package = __name__  # Could be any module/package name.
+# FIXME
+resource_package = __name__
 
 try:
+    # This path is for `cfy local` executions
     resource_path = os.path.join('../scripts', 'mega-deploy.sh')
     kubernetes_script = pkg_resources.resource_string(resource_package, resource_path)
 except IOError:
+    # This path is for executions performed by Mist.io
     tmp_dir = os.path.join('/tmp/templates',
                            'mistio-kubernetes-blueprint-[A-Za-z0-9]*',
                            'scripts')
@@ -42,7 +45,7 @@ def random_string(length=6):
     _chars = string.letters + string.digits
     return ''.join(random.choice(_chars) for _ in range(length))
 
-# TODO deprecate
+# TODO deprecate this!
 client = connection.MistConnectionClient().client
 machine = connection.MistConnectionClient().machine
 
@@ -100,26 +103,32 @@ if not is_configured:
     machine_id = ctx.instance.runtime_properties['machine_id']
     cloud_id = ctx.node.properties['parameters']['cloud_id']
     script_id = ctx.instance.runtime_properties['script_id']
-    # TODO job_id???
-    job_id = client.run_script(script_id=script_id, cloud_id=cloud_id,
-                               machine_id=machine_id,
-                               script_params=script_params, su=True)
-    ctx.logger.info('*********** Job ID from run_script --> %s', job_id)
 
-    job_id = job_id['job_id']
-#    started_at = job_id['started_at'] 
+    script_job = client.run_script(script_id=script_id, cloud_id=cloud_id,
+                                   machine_id=machine_id,
+                                   script_params=script_params, su=True)
+
+    job_id = script_job['job_id']
     job = client.get_job(job_id)
+    started_at = job['started_at']
 
     while True:
         if job['error']:
-            # TODO log error, if exists, then raise
+            # Print entire output only in case an error has occured
+            _stdout = job['logs'][2]['stdout']
+            _extra_stdout = job['logs'][2]['extra_output']
+            _stdout += _extra_stdout if _extra_stdout else ''
+            ctx.logger.error(_stdout)
             raise NonRecoverableError('Kubernetes %s installation failed',
                                       kube_type.upper())
-#        if time() > started_at + SCRIPT_TIMEOUT:
-#            # TODO log debug, if output exists, then raise
-#            raise NonRecoverableError('Kubernetes %s installation script '
-#                                      'is taking too long! Giving up...',
-#                                      kube_type.upper())
+        if time() > started_at + SCRIPT_TIMEOUT:
+            _stdout = job['logs'][2]['stdout']
+            _extra_stdout = job["logs"][2]['extra_output']
+            _stdout += _extra_stdout if _extra_stdout else ''
+            ctx.logger.debug(_stdout)
+            raise NonRecoverableError('Kubernetes %s installation script '
+                                      'is taking too long! Giving up...',
+                                      kube_type.upper())
         if job['finished_at']:
             break
 
@@ -127,9 +136,6 @@ if not is_configured:
                         kube_type.upper())
         sleep(5)
         job = client.get_job(job_id)
-    ctx.logger.info('*********** Job from get_job --> %s', job)
-    # TODO deprecate -> ONLY print err, if exists
-#    ctx.logger.info(job["logs"][2]['stdout'])
-#    ctx.logger.info(job["logs"][2]['extra_output'])
+
     ctx.logger.info('Kubernetes %s installation succeeded!', kube_type.upper())
 
