@@ -3,13 +3,6 @@ from cloudify.state import ctx_parameters as params
 from cloudify.exceptions import NonRecoverableError
 
 
-ctx.logger.info('-----------------')
-ctx.logger.info(ctx.instance.id)
-ctx.logger.info(ctx.instance)
-ctx.logger.info('-----------------')
-ctx.logger.info(params.ctx.instance.id)
-ctx.logger.info(params.ctx.instance.runtime_properties)
-
 if params.action == 'associate':
     master_token = ctx.instance.runtime_properties.get('master_token', '')
     if not master_token:
@@ -18,7 +11,7 @@ if params.action == 'associate':
         raise NonRecoverableError('Token is missing')
 
     ctx.logger.info('Kubernetes Token found')
-    with open('/master_token', 'w') as f:
+    with open('/tmp/master_token', 'w') as f:
         f.write(str(master_token))
 
 elif params.action == 'disassociate':
@@ -29,7 +22,7 @@ elif params.action == 'disassociate':
                         'Kubernetes nodes may not be properly disassociated '
                         'from the cluster. Will try anyway...')
 
-    with open('/credentials', 'w') as f:
+    with open('/tmp/credentials', 'w') as f:
         f.write('%s:%s' % (username, password))
 
 

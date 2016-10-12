@@ -123,11 +123,6 @@ if not is_configured:
             raise NonRecoverableError('Kubernetes %s installation failed',
                                       kube_type.upper())
         if time() > started_at + SCRIPT_TIMEOUT:
-            # TODO will stdout be available in case of a timeout?
-#            _stdout = job['logs'][2]['stdout']
-#            _extra_stdout = job["logs"][2]['extra_output']
-#            _stdout += _extra_stdout if _extra_stdout else ''
-#            ctx.logger.debug(_stdout)
             raise NonRecoverableError('Kubernetes %s installation script '
                                       'is taking too long! Giving up...',
                                       kube_type.upper())
@@ -136,7 +131,7 @@ if not is_configured:
 
         ctx.logger.info('Waiting for Kubernetes %s installation to finish...',
                         kube_type.upper())
-        sleep(5)
+        sleep(10)
         job = client.get_job(job_id)
 
     ctx.logger.info('Kubernetes %s installation succeeded!', kube_type.upper())

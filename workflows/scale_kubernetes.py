@@ -39,7 +39,6 @@ except IOError:
         kubernetes_script = f.read()
 
 
-#KUBE_TYPE = 'worker'
 CREATE_TIMEOUT = 60 * 5
 SCRIPT_TIMEOUT = 60 * 30
 
@@ -84,6 +83,14 @@ def scale_cluster_up(delta):
     # Private IP of the Kubernetes Master
     master_ip = master_machine.info['private_ips'][0]
     # /deprecate
+
+    # NOTE: Such operations seem to be running asynchronously
+    master_instance.execute_operation(
+        'cloudify.interfaces.lifecycle.authenticate',
+        kwargs={'action': 'associate'}
+    )
+    with open('/tmp/master_token', 'r') as f:
+        master_token = f.read()
 
     if inputs['use_external_resource']:
         machine = mist_client.other_machine(inputs)  # FIXME
@@ -144,12 +151,11 @@ def scale_cluster_up(delta):
             raise NonRecoverableError('Machine has encountered an error')
 
         if time() > started_at + CREATE_TIMEOUT:
-            # TODO print something!
             raise NonRecoverableError('Machine creation is taking too long! '
                                       'Backing away...')
 
         workctx.logger.info('Waiting for machine to become responsive...')
-        sleep(5)
+        sleep(10)
         job = client.get_job(job_id)
 
     # FIXME re-uploading Kubernetes script
@@ -170,15 +176,6 @@ def scale_cluster_up(delta):
         machine_id = inputs['machine_id']
         cloud_id = inputs['mist_cloud']
 
-        # NOTE TEST THIS # # # #
-        master_instance.execute_operation( 
-            'cloudify.interfaces.lifecycle.authenticate',
-            kwargs={'action': 'associate'}
-        )
-        sleep(10)
-        with open('/master_token', 'r') as f:
-            master_token = f.read()
-        # # # # # # # # # # # #
 
         script_params = "-m '%s' -r 'node' -t '%s'" % (master_ip, master_token)
         script_id = script['id']
@@ -201,19 +198,16 @@ def scale_cluster_up(delta):
                                      'Kubernetes installation:\n%s', _stdout)
                 raise NonRecoverableError('Installation of Kubernetes failed')
             if time() > started_at + SCRIPT_TIMEOUT:
-#                _stdout = job['logs'][2]['stdout']
-#                _extra_stdout = job['logs'][2]['extra_output']
-#                _stdout += _extra_stdout if _extra_stdout else ''
-#                workctx.logger.debug(_stdout)
                 raise NonRecoverableError('Installation of Kubernetes is '
                                           'taking too long! Giving up...')
             if job['finished_at']:
                 break
 
             workctx.logger.info('Waiting for Kubernetes to be installed...')
-            sleep(5)
+            sleep(10)
             job = client.get_job(job_id)
 
+        # NOTE: Such operations seem to be running asynchronously
         workctx.logger.info('Associating node to cluster...')
         master_instance.execute_operation(
             'cloudify.interfaces.lifecycle.associate',
@@ -237,6 +231,14 @@ def scale_cluster_down(delta):
     # Private IP of Kubernetes Master
     master_ip = master_machine.info['public_ips'][0]
 
+    # NOTE: Such operations seem to be running asynchronously
+    master_instance.execute_operation(
+        'cloudify.interfaces.lifecycle.authenticate',
+        kwargs={'action': 'disassociate'}
+    )
+    with open('/tmp/credentials', 'r') as f:
+        basic_auth = f.read()
+
     worker_name = inputs.get('worker_name')
     if not worker_name:
         raise NonRecoverableError('Kubernetes Worker\'s name is missing')
@@ -248,14 +250,6 @@ def scale_cluster_down(delta):
         return
 
     workctx.logger.info('Terminating %d Kubernetes Worker(s)...', len(machines))
-    # NOTE TEST THIS # # # #
-    master_instance.execute_operation(
-        'cloudify.interfaces.lifecycle.authenticate',
-        kwargs={'action': 'disassociate'}
-    )
-    with open('/credentials', 'r') as f:
-        basic_auth = f.read()
-    # # # # # # # # # # # #
     counter = 0
     for m in machines:
         if not m.info['state'] in ('stopped', 'running'):
