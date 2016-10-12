@@ -326,6 +326,12 @@ workflows:
           Kubernetes cluster (mandatory)
         type: string
         default: ''
+      master_token:
+        description: >
+          Token used in order to secure communication between Master and
+          Worker nodes
+          type: string
+          default: { get_attribute: [ kube_master, master_token ] }
       monitoring:
         description: Whether to enable monitoring on the machine or not
         type: boolean
