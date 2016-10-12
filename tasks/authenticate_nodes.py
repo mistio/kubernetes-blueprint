@@ -11,7 +11,7 @@ if params.action == 'associate':
         raise NonRecoverableError('Token is missing')
 
     ctx.logger.info('Kubernetes Token found')
-    with open('/tmp/master_token', 'w') as f:
+    with open('/master_token', 'w') as f:
         f.write(str(master_token))
 
 elif params.action == 'disassociate':
@@ -22,6 +22,6 @@ elif params.action == 'disassociate':
                         'Kubernetes nodes may not be properly disassociated '
                         'from the cluster. Will try anyway...')
 
-    with open('/tmp/credentials', 'w') as f:
+    with open('/credentials', 'w') as f:
         f.write('%s:%s' % (username, password))
 

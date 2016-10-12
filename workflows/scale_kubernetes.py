@@ -175,7 +175,7 @@ def scale_cluster_up(delta):
             'cloudify.interfaces.lifecycle.authenticate',
             kwargs={'action': 'associate'}
         )
-        with open('/tmp/master_token', 'r') as f:
+        with open('/master_token', 'r') as f:
             master_token = f.read()
         # # # # # # # # # # # #
 
@@ -252,7 +252,7 @@ def scale_cluster_down(delta):
         'cloudify.interfaces.lifecycle.authenticate',
         kwargs={'action': 'disassociate'}
     )
-    with open('/tmp/credentials', 'r') as f:
+    with open('/credentials', 'r') as f:
         basic_auth = f.read()
     # # # # # # # # # # # #
     counter = 0
