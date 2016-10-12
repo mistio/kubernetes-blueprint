@@ -3,7 +3,11 @@ from cloudify.state import ctx_parameters as params
 from cloudify.exceptions import NonRecoverableError
 
 
-ctx.logger.info(params.ctx.instance.keys())
+ctx.logger.info('-----------------')
+ctx.logger.info(ctx.instance.id)
+ctx.logger.info(ctx.instance)
+ctx.logger.info('-----------------')
+ctx.logger.info(params.ctx.instance.id)
 ctx.logger.info(params.ctx.instance.runtime_properties)
 
 if params.action == 'associate':
