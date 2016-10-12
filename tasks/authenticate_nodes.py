@@ -3,7 +3,6 @@ from cloudify.state import ctx_parameters as params
 from cloudify.exceptions import NonRecoverableError
 
 
-ctx.logger.info(ctx.instance.keys())
 ctx.logger.info(params.ctx.instance.keys())
 ctx.logger.info(params.ctx.instance.runtime_properties)
 
