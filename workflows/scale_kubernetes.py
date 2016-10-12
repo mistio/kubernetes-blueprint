@@ -175,6 +175,7 @@ def scale_cluster_up(delta):
             'cloudify.interfaces.lifecycle.authenticate',
             kwargs={'action': 'associate'}
         )
+        sleep(10)
         with open('/master_token', 'r') as f:
             master_token = f.read()
         # # # # # # # # # # # #
