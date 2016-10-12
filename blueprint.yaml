@@ -327,6 +327,9 @@ workflows:
           Kubernetes cluster (mandatory)
         type: string
         default: ''
+      master_token:  # TODO TEMP
+        type: string
+        default: ''
       monitoring:
         description: Whether to enable monitoring on the machine or not
         type: boolean
