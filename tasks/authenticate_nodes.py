@@ -3,7 +3,9 @@ from cloudify.state import ctx_parameters as params
 from cloudify.exceptions import NonRecoverableError
 
 
-ctx.logger.info(ctx.instance.runtime_properties)
+ctx.logger.info(ctx.instance.keys())
+ctx.logger.info(params.ctx.instance.keys())
+ctx.logger.info(params.ctx.instance.runtime_properties)
 
 if params.action == 'associate':
     master_token = ctx.instance.runtime_properties.get('master_token', '')
@@ -27,6 +29,4 @@ elif params.action == 'disassociate':
     with open('/credentials', 'w') as f:
         f.write('%s:%s' % (username, password))
 
-ctx.logger.info(params)
-ctx.logger.info(params.ctx.runtime_properties)
 
