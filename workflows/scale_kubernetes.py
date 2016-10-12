@@ -150,7 +150,7 @@ def scale_cluster_up(delta):
         sleep(5)
         job = client.get_job(job_id)
 
-    ctx.logger.debug('************* %s', job)  # TODO REMOVE THIS
+    workctx.logger.debug('************* %s', job)  # TODO REMOVE THIS
 
     # FIXME re-uploading Kubernetes script
     script_name = 'install_kubernetes_%s' % uuid.uuid1().hex
