@@ -59,8 +59,8 @@ def scale_cluster():
         delta = int(delta)
 
     if delta == 0:
-        workctx.logger.debug('Delta parameter equals 0! No scaling will take '
-                             'place')
+        workctx.logger.info('Delta parameter equals 0! No scaling will take '
+                            'place')
         return
     elif delta > 0:
         workctx.logger.info('Scaling Kubernetes cluster up by %s node(s)',
@@ -109,7 +109,7 @@ def scale_cluster_up(delta):
     else:
         raise NonRecoverableError('No key provided')
 
-    # TODO is this correct?
+    # TODO is this correct? Does this scenario cover all providers?
     for param in ['mist_image', 'mist_size', 'mist_location']:
         if not inputs.get(param):
             raise NonRecovarableError('Input parameter \'%s\' is required, but '
@@ -138,7 +138,7 @@ def scale_cluster_up(delta):
         if job['summary']['create']['error'] or \
             job['summary']['probe']['error']:
             # FIXME `job` is too much of an output
-            workctx.logger.error('Error during machine creation: %s', job)
+            workctx.logger.error('Error during machine creation:\n%s', job)
             raise NonRecoverableError('Machine creation failed')
 
         if time() > started_at + CREATE_TIMEOUT:
@@ -150,7 +150,7 @@ def scale_cluster_up(delta):
         sleep(5)
         job = client.get_job(job_id)
 
-    workctx.logger.debug('************* %s', job)  # TODO REMOVE THIS
+    workctx.logger.info('************* %s', job)  # TODO REMOVE THIS
 
     # FIXME re-uploading Kubernetes script
     script_name = 'install_kubernetes_%s' % uuid.uuid1().hex
@@ -171,8 +171,9 @@ def scale_cluster_up(delta):
         cloud_id = inputs['mist_cloud']
 
         # NOTE TEST THIS # # # #
+        workctx.logger.info('************** %s', master_instance)
+        workctx.logger.info('************** %s', inputs)
         master_token = inputs['master_token']
-        workctx.logger.debug('************** %s', master_instance)
         # # # # # # # # # # # #
 
         script_params = "-m '%s' -r 'node' -t '%s'" % (master_ip, master_token)
@@ -192,7 +193,8 @@ def scale_cluster_up(delta):
                 _stdout = job['logs'][2]['stdout']
                 _extra_stdout = job['logs'][2]['extra_output']
                 _stdout += _extra_stdout if _extra_stdout else ''
-                workctx.logger.error(_stdout)
+                workctx.logger.error('Encountered an error during '
+                                     'Kubernetes installation:\n%s', _stdout)
                 raise NonRecoverableError('Installation of Kubernetes failed')
             if time() > started_at + SCRIPT_TIMEOUT:
 #                _stdout = job['logs'][2]['stdout']
@@ -236,8 +238,8 @@ def scale_cluster_down(delta):
 
     machines = cloud.machines(search=worker_name)
     if not machines:
-        workctx.logger.debug('Cannot find node \'%s\'. Already removed? '
-                             'Exiting...', worker_name)
+        workctx.logger.warn('Cannot find node \'%s\'. Already removed? '
+                            'Exiting...', worker_name)
         return
 
     workctx.logger.info('Terminating %d Kubernetes Worker(s)...', len(machines))
