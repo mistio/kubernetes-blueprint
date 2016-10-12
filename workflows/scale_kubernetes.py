@@ -54,6 +54,7 @@ def random_name(length=4):
 
 
 def scale_cluster():
+    from ipdb import set_trace; set_trace()
     delta = inputs.get('delta')
     if isinstance(delta, basestring):
         delta = int(delta)
@@ -137,9 +138,11 @@ def scale_cluster_up(delta):
             break
         if job['summary']['create']['error'] or \
             job['summary']['probe']['error']:
-            # FIXME `job` is too much of an output
-            workctx.logger.error('Error during machine creation:\n%s', job)
-            raise NonRecoverableError('Machine creation failed')
+            err = job['logs'][2]
+            if err.get('error', ''):
+                workctx.logger.error('An error occured, while probing '
+                                     'machine:\n%s', err.get('error', ''))
+            raise NonRecoverableError('Machine has encountered an error')
 
         if time() > started_at + CREATE_TIMEOUT:
             # TODO print something!
@@ -149,8 +152,6 @@ def scale_cluster_up(delta):
         workctx.logger.info('Waiting for machine to become responsive...')
         sleep(5)
         job = client.get_job(job_id)
-
-    workctx.logger.info('************* %s', job)  # TODO REMOVE THIS
 
     # FIXME re-uploading Kubernetes script
     script_name = 'install_kubernetes_%s' % uuid.uuid1().hex
