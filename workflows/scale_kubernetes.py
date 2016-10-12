@@ -89,8 +89,6 @@ def scale_cluster_up(delta):
         'cloudify.interfaces.lifecycle.authenticate',
         kwargs={'action': 'associate'}
     )
-    with open('/tmp/master_token', 'r') as f:
-        master_token = f.read()
 
     if inputs['use_external_resource']:
         machine = mist_client.other_machine(inputs)  # FIXME
@@ -176,6 +174,9 @@ def scale_cluster_up(delta):
         machine_id = inputs['machine_id']
         cloud_id = inputs['mist_cloud']
 
+        # Get the token from file in order to secure communication
+        with open('/tmp/master_token', 'r') as f:
+            master_token = f.read()
 
         script_params = "-m '%s' -r 'node' -t '%s'" % (master_ip, master_token)
         script_id = script['id']
@@ -236,8 +237,6 @@ def scale_cluster_down(delta):
         'cloudify.interfaces.lifecycle.authenticate',
         kwargs={'action': 'disassociate'}
     )
-    with open('/tmp/credentials', 'r') as f:
-        basic_auth = f.read()
 
     worker_name = inputs.get('worker_name')
     if not worker_name:
@@ -255,9 +254,16 @@ def scale_cluster_down(delta):
         if not m.info['state'] in ('stopped', 'running'):
             continue
         counter += 1
+        # Properly modify the IP in order to be used in the URL
         worker_priv_ip = m.info['private_ips'][0]
         worker_selfLink = 'ip-' + str(worker_priv_ip).replace('.', '-')
+        # Destroy machine
         m.destroy()
+
+        # Get the token from file in order to secure communication
+        with open('/tmp/credentials', 'r') as f:
+            basic_auth = f.read()
+
         workctx.logger.info('Removing node from the Kubernetes cluster...')
         requests.delete('https://%s@%s/api/v1/nodes/%s' % \
                         (basic_auth, master_ip, worker_selfLink), verify=False)
