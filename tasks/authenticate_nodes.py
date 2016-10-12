@@ -9,8 +9,11 @@ if params.action == 'associate':
         ctx.logger.error('Failed to find Token. '
                          'Worker-Master communication will fail')
         raise NonRecoverableError('Token is missing')
+
     ctx.logger.info('Kubernetes Token found')
-    return master_token
+    with open('/tmp/master_token', 'w') as f:
+        f.write(str(master_token))
+
 elif params.action == 'disassociate':
     username = ctx.instance.runtime_properties.get('auth_user', '')
     password = ctx.instance.runtime_properties.get('auth_pass', '')
@@ -18,4 +21,7 @@ elif params.action == 'disassociate':
         ctx.logger.warn('Basic Authentication credentials may be incomplete. '
                         'Kubernetes nodes may not be properly disassociated '
                         'from the cluster. Will try anyway...')
-    return username, password
+
+    with open('/tmp/credentials', 'w') as f:
+        f.write('%s:%s' % (username, password))
+

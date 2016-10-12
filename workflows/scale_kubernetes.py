@@ -171,10 +171,12 @@ def scale_cluster_up(delta):
         cloud_id = inputs['mist_cloud']
 
         # NOTE TEST THIS # # # #
-        master_token =  master_instance.execute_operation( 
+        master_instance.execute_operation( 
             'cloudify.interfaces.lifecycle.authenticate',
             kwargs={'action': 'associate'}
         )
+        with open('/tmp/master_token', 'r') as f:
+            master_token = f.read()
         # # # # # # # # # # # #
 
         script_params = "-m '%s' -r 'node' -t '%s'" % (master_ip, master_token)
@@ -225,6 +227,7 @@ def scale_cluster_up(delta):
 
 def scale_cluster_down(delta):
     master = workctx.get_node('kube_master')
+    master_instance = [instance for instance in master.instances][0]
     # TODO deprecate this! /
     mist_client = connection.MistConnectionClient(properties=master.properties)
     cloud = mist_client.cloud
@@ -245,10 +248,12 @@ def scale_cluster_down(delta):
 
     workctx.logger.info('Terminating %d Kubernetes Worker(s)...', len(machines))
     # NOTE TEST THIS # # # #
-    username, password =  master_instance.execute_operation( 
+    master_instance.execute_operation(
         'cloudify.interfaces.lifecycle.authenticate',
         kwargs={'action': 'disassociate'}
     )
+    with open('/tmp/credentials', 'r') as f:
+        basic_auth = f.read()
     # # # # # # # # # # # #
     counter = 0
     for m in machines:
@@ -259,10 +264,8 @@ def scale_cluster_down(delta):
         worker_selfLink = 'ip-' + str(worker_priv_ip).replace('.', '-')
         m.destroy()
         workctx.logger.info('Removing node from the Kubernetes cluster...')
-        requests.delete('https://%s:%s@%s/api/v1/nodes/%s' % \
-                        (username, password, master_ip, worker_selfLink),
-                        verify=False
-                       )
+        requests.delete('https://%s@%s/api/v1/nodes/%s' % \
+                        (basic_auth, master_ip, worker_selfLink), verify=False)
 
         if counter == delta:
             break
