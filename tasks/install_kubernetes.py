@@ -26,7 +26,8 @@ resource_package = __name__
 try:
     # This path is for `cfy local` executions
     resource_path = os.path.join('../scripts', 'mega-deploy.sh')
-    kubernetes_script = pkg_resources.resource_string(resource_package, resource_path)
+    kubernetes_script = \
+        pkg_resources.resource_string(resource_package, resource_path)
 except IOError:
     # This path is for executions performed by Mist.io
     tmp_dir = os.path.join('/tmp/templates',
@@ -122,10 +123,11 @@ if not is_configured:
             raise NonRecoverableError('Kubernetes %s installation failed',
                                       kube_type.upper())
         if time() > started_at + SCRIPT_TIMEOUT:
-            _stdout = job['logs'][2]['stdout']
-            _extra_stdout = job["logs"][2]['extra_output']
-            _stdout += _extra_stdout if _extra_stdout else ''
-            ctx.logger.debug(_stdout)
+            # TODO will stdout be available in case of a timeout?
+#            _stdout = job['logs'][2]['stdout']
+#            _extra_stdout = job["logs"][2]['extra_output']
+#            _stdout += _extra_stdout if _extra_stdout else ''
+#            ctx.logger.debug(_stdout)
             raise NonRecoverableError('Kubernetes %s installation script '
                                       'is taking too long! Giving up...',
                                       kube_type.upper())

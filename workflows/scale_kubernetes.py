@@ -54,7 +54,6 @@ def random_name(length=4):
 
 
 def scale_cluster():
-    from ipdb import set_trace; set_trace()
     delta = inputs.get('delta')
     if isinstance(delta, basestring):
         delta = int(delta)
@@ -172,9 +171,10 @@ def scale_cluster_up(delta):
         cloud_id = inputs['mist_cloud']
 
         # NOTE TEST THIS # # # #
-        workctx.logger.info('************** %s', master_instance)
-        workctx.logger.info('************** %s', inputs)
-        master_token = inputs['master_token']
+        master_token =  master_instance.execute_operation( 
+            'cloudify.interfaces.lifecycle.authenticate',
+            kwargs={'action': 'associate'}
+        )
         # # # # # # # # # # # #
 
         script_params = "-m '%s' -r 'node' -t '%s'" % (master_ip, master_token)
@@ -244,6 +244,12 @@ def scale_cluster_down(delta):
         return
 
     workctx.logger.info('Terminating %d Kubernetes Worker(s)...', len(machines))
+    # NOTE TEST THIS # # # #
+    username, password =  master_instance.execute_operation( 
+        'cloudify.interfaces.lifecycle.authenticate',
+        kwargs={'action': 'disassociate'}
+    )
+    # # # # # # # # # # # #
     counter = 0
     for m in machines:
         if not m.info['state'] in ('stopped', 'running'):
@@ -254,10 +260,9 @@ def scale_cluster_down(delta):
         m.destroy()
         workctx.logger.info('Removing node from the Kubernetes cluster...')
         requests.delete('https://%s:%s@%s/api/v1/nodes/%s' % \
-                       (master.properties['auth_user'],
-                        master.properties['auth_pass'],
-                        master_ip, worker_selfLink
-                       ), verify=False)
+                        (username, password, master_ip, worker_selfLink),
+                        verify=False
+                       )
 
         if counter == delta:
             break

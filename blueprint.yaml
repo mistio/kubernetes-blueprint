@@ -153,6 +153,7 @@ node_types:
               type: integer
               default: 30
         associate: tasks/associate_nodes.py
+        authenticate: tasks/authenticate_nodes.py
 
   cloudify.mist.nodes.KubernetesWorker:
     derived_from: cloudify.mist.nodes.Server
@@ -326,12 +327,6 @@ workflows:
           Kubernetes cluster (mandatory)
         type: string
         default: ''
-      master_token:
-        description: >
-          Token used in order to secure communication between Master and
-          Worker nodes
-          type: string
-          default: { get_attribute: [ kube_master, master_token ] }
       monitoring:
         description: Whether to enable monitoring on the machine or not
         type: boolean
