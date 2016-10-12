@@ -114,6 +114,9 @@ def scale_cluster_up(delta):
         if not inputs.get(param):
             raise NonRecovarableError('Input parameter \'%s\' is required, but '
                                       'it is missing', param)
+    image_id = inputs['mist_image']
+    size_id = inputs['mist_size']
+    location_id = inputs['mist_location']
     networks = inputs.get('networks', [])
 
     workctx.logger.info("Deploying %d '%s' node(s)", delta, machine_name)
