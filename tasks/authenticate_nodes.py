@@ -2,6 +2,7 @@ from cloudify import ctx
 from cloudify.state import ctx_parameters as params
 from cloudify.exceptions import NonRecoverableError
 
+ctx.logger.info(params)
 
 if params.action == 'associate':
     master_token = ctx.instance.runtime_properties.get('master_token', '')
