@@ -26,8 +26,8 @@ resource_package = __name__
 try:
     # This path is for `cfy local` executions
     resource_path = os.path.join('../scripts', 'mega-deploy.sh')
-    kubernetes_script = \
-        pkg_resources.resource_string(resource_package, resource_path)
+    kubernetes_script = pkg_resources.resource_string(resource_package,
+                                                      resource_path)
 except IOError:
     # This path is for executions performed by Mist.io
     tmp_dir = os.path.join('/tmp/templates',
@@ -52,27 +52,21 @@ def random_name(length=4):
     return 'MistCfyNode-%s-%s' % (random_chars(length), random_chars(length))
 
 
-def scale_cluster():
-    delta = inputs.get('delta')
+def scale_cluster(delta):
     if isinstance(delta, basestring):
         delta = int(delta)
 
     if delta == 0:
-        workctx.logger.info('Delta parameter equals 0! No scaling will take '
-                            'place')
+        workctx.logger.info('Delta parameter equals 0! No scaling will '
+                            'take place')
         return
-    elif delta > 0:
-        workctx.logger.info('Scaling Kubernetes cluster up by %s node(s)',
-                            delta)
+    else:
+        workctx.logger.info('Scaling Kubernetes cluster up '
+                            'by %s node(s)', delta)
         scale_cluster_up(delta)
-    elif delta < 0:
-        # TODO verify that (current number of nodes) - (delta) > 0
-        workctx.logger.info('Scaling Kubernetes cluster down by %s node(s)',
-                            abs(delta))
-        scale_cluster_down(abs(delta))
 
 
-def scale_cluster_up(delta):
+def scale_cluster_up(quantity):
     master = workctx.get_node('kube_master')
     master_instance = [instance for instance in master.instances][0]
     # TODO deprecate this! /
@@ -124,8 +118,7 @@ def scale_cluster_up(delta):
     location_id = inputs['mist_location']
     networks = inputs.get('networks', [])
 
-    workctx.logger.info("Deploying %d '%s' node(s)", delta, machine_name)
-    quantity = delta
+    workctx.logger.info("Deploying %d '%s' node(s)", quantity, machine_name)
     job = cloud.create_machine(async=True, name=machine_name, key=key,
                                image_id=image_id, location_id=location_id,
                                size_id=size_id, quantity=quantity,
@@ -175,7 +168,7 @@ def scale_cluster_up(delta):
         cloud_id = inputs['mist_cloud']
 
         # Get the token from file in order to secure communication
-        with open('/tmp/master_token', 'r') as f:
+        with open('/tmp/cloudify-mist-plugin-kubernetes-token', 'r') as f:
             master_token = f.read()
 
         script_params = "-m '%s' -r 'node' -t '%s'" % (master_ip, master_token)
@@ -221,57 +214,5 @@ def scale_cluster_up(delta):
     workctx.logger.info('Upscaling Kubernetes cluster succeeded!')
 
 
-def scale_cluster_down(delta):
-    master = workctx.get_node('kube_master')
-    master_instance = [instance for instance in master.instances][0]
-    # TODO deprecate this! /
-    mist_client = connection.MistConnectionClient(properties=master.properties)
-    cloud = mist_client.cloud
-    master_machine = mist_client.machine
-    # / deprecate
-    # Private IP of Kubernetes Master
-    master_ip = master_machine.info['public_ips'][0]
+scale_cluster(inputs['delta'])
 
-    # NOTE: Such operations run asynchronously
-    master_instance.execute_operation(
-        'cloudify.interfaces.lifecycle.authenticate',
-        kwargs={'action': 'disassociate'}
-    )
-
-    worker_name = inputs.get('worker_name')
-    if not worker_name:
-        raise NonRecoverableError('Kubernetes Worker\'s name is missing')
-
-    machines = cloud.machines(search=worker_name)
-    if not machines:
-        workctx.logger.warn('Cannot find node \'%s\'. Already removed? '
-                            'Exiting...', worker_name)
-        return
-
-    workctx.logger.info('Terminating %d Kubernetes Worker(s)...', len(machines))
-    counter = 0
-    for m in machines:
-        if not m.info['state'] in ('stopped', 'running'):
-            continue
-        counter += 1
-        # Properly modify the IP in order to be used in the URL
-        worker_priv_ip = m.info['private_ips'][0]
-        worker_selfLink = 'ip-' + str(worker_priv_ip).replace('.', '-')
-        # Destroy machine
-        m.destroy()
-
-        # Get the token from file in order to secure communication
-        with open('/tmp/credentials', 'r') as f:
-            basic_auth = f.read()
-
-        workctx.logger.info('Removing node from the Kubernetes cluster...')
-        requests.delete('https://%s@%s/api/v1/nodes/%s' % \
-                        (basic_auth, master_ip, worker_selfLink), verify=False)
-
-        if counter == delta:
-            break
-
-    workctx.logger.info('Downscaling Kubernetes cluster succeeded!')
-
-
-scale_cluster()

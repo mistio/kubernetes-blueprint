@@ -255,8 +255,8 @@ node_templates:
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
 workflows:
-  scale_cluster:
-    mapping: workflows/scale_kubernetes.py
+  scale_cluster_up:
+    mapping: workflows/scale_up.py
     parameters:
 # TODO: Not supported yet
 #      use_external_resource:
@@ -266,39 +266,47 @@ workflows:
 #        type: string
 #        default: ''
       mist_cloud:
-        description: Cloud ID (mandatory)
+        description: The ID of the cloud on which the machines will be provisioned
         type: string
         default: ''
       mist_image:
-        description: Image ID (mandatory)
+        description: The ID of the image to be used for each VM
         type: string
         default: ''
       mist_size:
-        description: Size ID (mandatory)
+        description: The ID of the VMs' instance type
         type: string
         default: ''
       mist_location:
-        description: Location ID (mandatory)
+        description: The ID of a VM's location
         type: string
         default: ''
       networks:
-        description: The network IDs that will be used by the machine
+        description: OpenStack networks. Only required in case you are provisioning machines on OpenStack
         default: []
       mist_key:
-        description: Key ID (mandatory)
-        type: string
-        default: ''
-      worker_name:
-        description: >
-          The name of the worker instance to be added/removed to/from the 
-          Kubernetes cluster (mandatory)
+        description: The ID of the SSH key to be deployed on the VM
         type: string
         default: ''
       delta:
         description: >
-          Denotes how many worker nodes should be added/removed to/from the
-          kubernetes cluster. A positive number denotes increase of instances,
-          while a negative one denotes decrease of instances
+          Denotes how many worker nodes should be added to the cluster
+        type: integer
+        default: 1
+
+  scale_cluster_down:
+    mapping: workflows/scale_down.py
+    parameters:
+      mist_cloud:
+        description: The ID of the cloud on which the VM is deployed
+        type: string
+        default: ''
+      worker_name:
+        description: The name of the worker instance to be removed from the cluster
+        type: string
+        default: ''
+      delta:
+        description: Denotes the number of worker nodes to be removed from the cluster
         type: integer
         default: 0
 
@@ -314,7 +322,7 @@ outputs:
     value:
       ip: { get_attribute: [ kube_master, ip ] }
   kubectl:
-    description: Kubernetes shell command to verify the nodes' deployment
+    description: Kubernetes cluster-info command
     value:
       command: { concat: [ 'kubectl --insecure-skip-tls-verify
                            --server="https://', { get_attribute: [ kube_master, ip ] },
