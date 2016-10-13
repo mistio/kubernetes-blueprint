@@ -64,25 +64,9 @@ inputs:
     description: The SSH user
     type: string
     default: ''
-#  monitoring:
-#    description: True, if monitoring should be enabled for the machine
-#    type: boolean
-#    default: false
-#  master_name:
-#    description: The machine name of the Kubernetes master
-#    type: string
-#   default: ''
-#  worker_name:
-#    description: The machine name of the Kubernetes worker
-#    type: string
-#    default: ''
   networks:
     description: A list of network IDs that will be used by the machine
     default: []
-#  associate_floating_ip:
-#    description: True, in order to associate a floating IP to an Openstack instance
-#    type: boolean
-#    default: true
   auth_user:  # TODO can be a separate data type
     description: The username used for accessing the Kubernetes dashboard
     type: string
@@ -197,22 +181,19 @@ node_templates:
   kube_master:
     type: cloudify.mist.nodes.KubernetesMaster
     properties:
-      cloudify_agent:  # FIXME
-        user: { get_input: ssh_user }
-        key: ''
+#      cloudify_agent:  # FIXME
+#        user: { get_input: ssh_user }
+#        key: ''
       use_external_resource: false
       resource_id: ''
       configured: false
       parameters:
-        key: { get_input: mist_key_master }
         cloud_id: { get_input: mist_cloud_1 }
         image_id: { get_input: mist_image_1 }
         size_id: { get_input: mist_size_1 }
         location_id: { get_input: mist_location_1 }
-#        name: { get_input: master_name }
-#        monitoring: { get_input: monitoring }
         networks: { get_input: networks }
-#        associate_floating_ip: { get_input: associate_floating_ip }
+        key: { get_input: mist_key_master }
       mist_config:
         mist_token: { get_input: mist_token }
         mist_username: { get_input: mist_username }
@@ -224,22 +205,19 @@ node_templates:
   kube_worker:
     type: cloudify.mist.nodes.KubernetesWorker
     properties:
-      cloudify_agent:  # FIXME
-        user: { get_input: ssh_user }
-        key: ''
+#      cloudify_agent:  # FIXME
+#        user: { get_input: ssh_user }
+#        key: ''
       use_external_resource: false
       resource_id: ''
       configured: false
       parameters:
-        key: { get_input: mist_key_worker }
         cloud_id: { get_input: mist_cloud_1 }
         image_id: { get_input: mist_image_1 }
         size_id: { get_input: mist_size_1 }
         location_id: { get_input: mist_location_1 }
-#        name: { get_input: worker_name }
-#        monitoring: { get_input: monitoring }
         networks: { get_input: networks }
-#        associate_floating_ip: { get_input: associate_floating_ip }
+        key: { get_input: mist_key_worker }
       mist_config:
         mist_token: { get_input: mist_token }
         mist_username: { get_input: mist_username }
@@ -249,12 +227,13 @@ node_templates:
       - target: kube_master
         type: cloudify.relationships.connected_to
 
+  # TODO relationship
   master_key:
     type: cloudify.mist.nodes.KeyPair
     properties:
       use_external_resource: false
-      resource_id: { get_input: mist_key_master }
       private_key_path: ''
+      resource_id: { get_input: mist_key_master }
       mist_config:
         mist_token: { get_input: mist_token }
         mist_username: { get_input: mist_username }
@@ -265,8 +244,8 @@ node_templates:
     type: cloudify.mist.nodes.KeyPair
     properties:
       use_external_resource: false
-      resource_id: { get_input: mist_key_worker }
       private_key_path: ''
+      resource_id: { get_input: mist_key_worker }
       mist_config:
         mist_token: { get_input: mist_token }
         mist_username: { get_input: mist_username }
@@ -313,13 +292,6 @@ workflows:
           Kubernetes cluster (mandatory)
         type: string
         default: ''
-#      master_token:  # TODO TEMP
-#        type: string
-#        default: ''
-#      monitoring:
-#        description: Whether to enable monitoring on the machine or not
-#        type: boolean
-#        default: false
       networks:
         description: The network IDs that will be used by the machine
         default: []
