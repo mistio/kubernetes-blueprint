@@ -84,7 +84,7 @@ def scale_cluster_up(delta):
     master_ip = master_machine.info['private_ips'][0]
     # /deprecate
 
-    # NOTE: Such operations seem to be running asynchronously
+    # NOTE: Such operations run asynchronously
     master_instance.execute_operation(
         'cloudify.interfaces.lifecycle.authenticate',
         kwargs={'action': 'associate'}
@@ -145,7 +145,7 @@ def scale_cluster_up(delta):
             err = job['logs'][2]
             if err.get('error', ''):
                 workctx.logger.error('An error occured, while probing '
-                                     'machine:\n%s', err.get('error', ''))
+                                     'machine\n%s', err.get('error', ''))
             raise NonRecoverableError('Machine has encountered an error')
 
         if time() > started_at + CREATE_TIMEOUT:
@@ -208,7 +208,7 @@ def scale_cluster_up(delta):
             sleep(10)
             job = client.get_job(job_id)
 
-        # NOTE: Such operations seem to be running asynchronously
+        # NOTE: Such operations run asynchronously
         workctx.logger.info('Associating node to cluster...')
         master_instance.execute_operation(
             'cloudify.interfaces.lifecycle.associate',
@@ -232,7 +232,7 @@ def scale_cluster_down(delta):
     # Private IP of Kubernetes Master
     master_ip = master_machine.info['public_ips'][0]
 
-    # NOTE: Such operations seem to be running asynchronously
+    # NOTE: Such operations run asynchronously
     master_instance.execute_operation(
         'cloudify.interfaces.lifecycle.authenticate',
         kwargs={'action': 'disassociate'}
