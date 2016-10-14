@@ -39,7 +39,7 @@ except IOError:
         kubernetes_script = f.read()
 
 
-CREATE_TIMEOUT = 60 * 5
+CREATE_TIMEOUT = 60 * 10
 SCRIPT_TIMEOUT = 60 * 30
 
 
@@ -144,15 +144,17 @@ def scale_cluster_up(quantity):
 #            raise NonRecoverableError('Machine has encountered an error')
         err = job.get('error')
         if err:
-            raise NonRecoverableError('An error occurred during machines '
-                                      ' creation\n%s', err)
-        if time() > started_at + CREATE_TIMEOUT:
+            workctx.logger.error('An error occured during machine creation')
+            raise NonRecoverableError(err)
+        elif time() > started_at + CREATE_TIMEOUT:
             raise NonRecoverableError('Machine creation is taking too long! '
                                       'Backing away...')
-
-        workctx.logger.info('Waiting for machine to become responsive...')
-        sleep(10)
-        job = client.get_job(job_id)
+        elif job.get('finished_at', 0):
+            break
+        else:
+            workctx.logger.info('Waiting for machine to become responsive...')
+            sleep(10)
+            job = client.get_job(job_id)
 
     # FIXME re-uploading Kubernetes script
     script_name = 'install_kubernetes_%s' % uuid.uuid1().hex
