@@ -128,19 +128,24 @@ def scale_cluster_up(quantity):
     job = client.get_job(job_id)
     started_at = time()
 
-    workctx.logger.info('Machine creation succeeded. Probing...')
+    workctx.logger.info('Machine creation started')
     while True:
-        if job['summary']['probe']['success']:
-            workctx.logger.info('Machine probed successfully')
-            break
-        if job['summary']['create']['error'] or job['summary']['probe'][
-                                                               'error']:
-            err = job['logs'][2]
-            if err.get('error', ''):
-                workctx.logger.error('An error occured, while probing '
-                                     'machine\n%s', err.get('error', ''))
-            raise NonRecoverableError('Machine has encountered an error')
-
+        workctx.logger.info('************** %s', job)
+        # TODO just do job['error'] ?
+#        if job['summary']['probe']['success']:
+#            workctx.logger.info('Machine probed successfully')
+#            break
+#        if job['summary']['create']['error'] or job['summary']['probe'][
+#                                                               'error']:
+#            err = job['logs'][2]
+#            if err.get('error', ''):
+#                workctx.logger.error('An error occured, while probing '
+#                                     'machine\n%s', err.get('error', ''))
+#            raise NonRecoverableError('Machine has encountered an error')
+        err = job.get('error')
+        if err:
+            raise NonRecoverableError('An error occurred during machines '
+                                      ' creation\n%s', err)
         if time() > started_at + CREATE_TIMEOUT:
             raise NonRecoverableError('Machine creation is taking too long! '
                                       'Backing away...')
