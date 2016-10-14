@@ -163,11 +163,11 @@ def scale_cluster_up(quantity):
         machine_name += '-' + str(m + 1) if quantity > 1 else ''
 
         inputs['name'] = machine_name
+        ctx.logger.info('******* INPUTS %s', inputs)
         # FIXME `other_machine` must be ERADICATED!
         machine = mist_client.other_machine(inputs)
         inputs['machine_id'] = machine.info['id']
         ctx.logger.info('******** MACHINE %s', machine)
-        ctx.logger.info('******* INPUTS %s', inputs)
         machine_id = inputs['machine_id']
         cloud_id = inputs['mist_cloud']
 
