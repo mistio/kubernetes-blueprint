@@ -144,10 +144,13 @@ def scale_cluster_up(quantity):
                     pending_machines -= 1
                     if not pending_machines:
                         break
-
-        workctx.logger.info('Waiting for machine to become responsive...')
-        sleep(10)
-        job = client.get_job(job_id)
+            else:
+                workctx.logger.info('Waiting for machine to become '
+                                    'responsive...')
+                sleep(10)
+                job = client.get_job(job_id)
+                continue
+        break
 
     # FIXME re-uploading Kubernetes script
     script_name = 'install_kubernetes_%s' % uuid.uuid1().hex
