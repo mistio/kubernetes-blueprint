@@ -181,7 +181,7 @@ def scale_cluster_up(quantity):
         workctx.logger.info('********* SCRIPT %s', script)
         script_job = client.run_script(script_id=script_id, cloud_id=cloud_id,
                                        machine_id=machine_id,
-                                       script_params=script_params, su=True)
+                                       script_params=script_params, su=False)
 
         job_id = script_job['job_id']
         job = client.get_job(job_id)
