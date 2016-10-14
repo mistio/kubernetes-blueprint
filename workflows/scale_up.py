@@ -163,11 +163,11 @@ def scale_cluster_up(quantity):
         machine_name += '-' + str(m + 1) if quantity > 1 else ''
 
         inputs['name'] = machine_name
-        ctx.logger.info('******* INPUTS %s', inputs)
+        workctx.logger.info('******* INPUTS %s', inputs)
         # FIXME `other_machine` must be ERADICATED!
         machine = mist_client.other_machine(inputs)
         inputs['machine_id'] = machine.info['id']
-        ctx.logger.info('******** MACHINE %s', machine)
+        workctx.logger.info('******** MACHINE %s', machine)
         machine_id = inputs['machine_id']
         cloud_id = inputs['mist_cloud']
 
@@ -179,7 +179,7 @@ def scale_cluster_up(quantity):
         script_id = script['id']
         workctx.logger.info('Kubernetes Worker installation started for %s',
                             machine_name)
-        ctx.logger.info('********* SCRIPT %s', script)
+        workctx.logger.info('********* SCRIPT %s', script)
         script_job = client.run_script(script_id=script_id, cloud_id=cloud_id,
                                        machine_id=machine_id,
                                        script_params=script_params, su=True)
