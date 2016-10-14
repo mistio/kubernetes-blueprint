@@ -26,8 +26,8 @@ resource_package = __name__
 try:
     # This path is for `cfy local` executions
     resource_path = os.path.join('../scripts', 'mega-deploy.sh')
-    kubernetes_script = \
-        pkg_resources.resource_string(resource_package, resource_path)
+    kubernetes_script = pkg_resources.resource_string(resource_package,
+                                                      resource_path)
 except IOError:
     # This path is for executions performed by Mist.io
     tmp_dir = os.path.join('/tmp/templates',
@@ -58,11 +58,12 @@ ctx.logger.info('Setting up Kubernetes %s Node...', kube_type.upper())
 
 if is_master:
     # Master's private IP
-    ctx.instance.runtime_properties['master_ip'] = \
-        machine.info['private_ips'][0]
+    ctx.instance.runtime_properties['master_ip'] = machine.info[
+        'private_ips'][0]
     # Token for secure Master-Worker communication
-    ctx.instance.runtime_properties['master_token'] = \
-        '%s.%s' % (random_string(), random_string())
+    ctx.instance.runtime_properties['master_token'] = '%s.%s' % \
+                                                      (random_string(),
+                                                       random_string())
 else:
     kube_master = ctx.instance.relationships[0]._target.instance
     # Master's private IP

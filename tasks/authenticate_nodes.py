@@ -25,4 +25,3 @@ elif params.action == 'disassociate':
     with open('/tmp/cloudify-mist-plugin-kubernetes-credentials', 'w') as f:
         f.write('%s:%s' % (username, password))
 
-

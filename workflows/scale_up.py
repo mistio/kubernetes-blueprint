@@ -84,7 +84,7 @@ def scale_cluster_up(quantity):
         kwargs={'action': 'associate'}
     )
 
-    if inputs['use_external_resource']:
+    if inputs.get('use_external_resource', False):
         machine = mist_client.other_machine(inputs)  # FIXME
 
     # Name of the new Kubernetes Worker
@@ -133,8 +133,8 @@ def scale_cluster_up(quantity):
         if job['summary']['probe']['success']:
             workctx.logger.info('Machine probed successfully')
             break
-        if job['summary']['create']['error'] or \
-            job['summary']['probe']['error']:
+        if job['summary']['create']['error'] or job['summary']['probe'][
+                                                               'error']:
             err = job['logs'][2]
             if err.get('error', ''):
                 workctx.logger.error('An error occured, while probing '
