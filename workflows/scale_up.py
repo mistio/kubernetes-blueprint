@@ -130,18 +130,6 @@ def scale_cluster_up(quantity):
 
     workctx.logger.info('Machine creation started')
     while True:
-        workctx.logger.info('************** %s', job)
-        # TODO just do job['error'] ?
-#        if job['summary']['probe']['success']:
-#            workctx.logger.info('Machine probed successfully')
-#            break
-#        if job['summary']['create']['error'] or job['summary']['probe'][
-#                                                               'error']:
-#            err = job['logs'][2]
-#            if err.get('error', ''):
-#                workctx.logger.error('An error occured, while probing '
-#                                     'machine\n%s', err.get('error', ''))
-#            raise NonRecoverableError('Machine has encountered an error')
         err = job.get('error')
         if err:
             workctx.logger.error('An error occured during machine creation')
@@ -149,12 +137,17 @@ def scale_cluster_up(quantity):
         elif time() > started_at + CREATE_TIMEOUT:
             raise NonRecoverableError('Machine creation is taking too long! '
                                       'Backing away...')
-        elif job.get('finished_at', 0):
-            break
         else:
-            workctx.logger.info('Waiting for machine to become responsive...')
-            sleep(10)
-            job = client.get_job(job_id)
+            pending_machines = quantity
+            for log in job['logs']:
+                if 'post_deploy_finished' in log.values():
+                    pending_machines -= 1
+                    if not pending_machines:
+                        break
+
+        workctx.logger.info('Waiting for machine to become responsive...')
+        sleep(10)
+        job = client.get_job(job_id)
 
     # FIXME re-uploading Kubernetes script
     script_name = 'install_kubernetes_%s' % uuid.uuid1().hex
