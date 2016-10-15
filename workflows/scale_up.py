@@ -79,7 +79,7 @@ def scale_cluster_up(quantity):
     cloud = mist_client.cloud
     master_machine = mist_client.machine
     # Private IP of the Kubernetes Master
-    master_ip = master_instance_from_file['runtime_properties'][
+    master_ip = master_instance_from_file['runtime_properties']['info'][
                                                  'private_ips'][0]
 #    master_ip = master_machine.info['private_ips'][0]
     # /deprecate
@@ -224,6 +224,7 @@ def scale_cluster_up(quantity):
 
 def instance_from_local_storage(instance):
     local_storage = os.path.join('/tmp/templates',
+                                 'mistio-kubernetes-blueprint-[A-Za-z0-9]*',
                                  'local-storage/local/node-instances',
                                  '%s_[A-Za-z0-9]*' % instance)
     instance_file = glob.glob(local_storage)[0]
