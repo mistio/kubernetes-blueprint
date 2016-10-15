@@ -8,6 +8,7 @@ import uuid
 import pkg_resources
 import glob
 import requests
+import json
 
 import string
 import random
@@ -69,13 +70,18 @@ def scale_cluster(delta):
 def scale_cluster_up(quantity):
     master = workctx.get_node('kube_master')
     master_instance = [instance for instance in master.instances][0]
+    # TODO Get runtime properties directly from local-storage
+    master_instance_from_file = instance_from_local_storage(
+        instance='kube_master')
     # TODO deprecate this! /
     mist_client = connection.MistConnectionClient(properties=master.properties)
     client = mist_client.client
     cloud = mist_client.cloud
     master_machine = mist_client.machine
     # Private IP of the Kubernetes Master
-    master_ip = master_machine.info['private_ips'][0]
+    master_ip = master_instance_from_file['runtime_properties'][
+                                                 'private_ips'][0]
+#    master_ip = master_machine.info['private_ips'][0]
     # /deprecate
 
     # NOTE: Such operations run asynchronously
@@ -214,6 +220,18 @@ def scale_cluster_up(quantity):
                             'succeeded!', inputs['name'])
 
     workctx.logger.info('Upscaling Kubernetes cluster succeeded!')
+
+
+def instance_from_local_storage(instance):
+    local_storage = os.path.join('/tmp/templates',
+                                 'local-storage/local/node-instances',
+                                 '%s_[A-Za-z0-9]*' % instance)
+    instance_file = glob.glob(local_storage)[0]
+
+    with open(instance_file, 'r') as ifile:
+        node_instance = ifile.read()
+
+    return json.loads(node_instance)
 
 
 scale_cluster(inputs['delta'])
