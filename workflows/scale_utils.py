@@ -24,7 +24,7 @@ class LocalStorage(object):
         Searches for the file in local-storage that corresponds to the node
         provided
         """
-        instace_file = self.fetch_instance_file(node)
+        instance_file = self.fetch_instance_file(node)
         print '*******************' + instance_file
         with open(instance_file, 'r') as _instance:
             instance_from_file = _instance.read()
