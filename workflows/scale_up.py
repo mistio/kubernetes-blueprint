@@ -129,7 +129,7 @@ def scale_cluster_up(quantity):
 
     workctx.logger.debug('Re-uploading Kubernetes installation script just '
                          'in case...')
-    script_name = 'install_kubernetes_%s' random_chars()
+    script_name = 'install_kubernetes_%s' % random_chars()
     script = client.add_script(name=script_name, script=kubernetes_script,
                                location_type='inline', exec_type='executable')
 
