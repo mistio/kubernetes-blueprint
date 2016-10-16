@@ -105,6 +105,7 @@ def scale_cluster_down(quantity):
             basic_auth = f.read()
 
         workctx.logger.info('Removing node from the Kubernetes cluster...')
+        workctx.logger.info('******************* %s, %s', basic_auth, master_ip)
         requests.delete('https://%s@%s/api/v1/nodes/%s' % \
                         (basic_auth, master_ip, worker_selfLink), verify=False)
 
