@@ -3,15 +3,13 @@ from cloudify.exceptions import NonRecoverableError
 
 import sys
 import os
-import uuid
 import pkg_resources
 import glob
 
-import string
-import random
-
 from time import time, sleep
 
+from utils import CONSTANTS
+from utils import random_string
 
 try:
     import connection
@@ -39,13 +37,6 @@ except IOError:
         kubernetes_script = f.read()
 
 
-SCRIPT_TIMEOUT = 60 * 30
-
-
-def random_string(length=6):
-    _chars = string.letters + string.digits
-    return ''.join(random.choice(_chars) for _ in range(length))
-
 # TODO deprecate this!
 client = connection.MistConnectionClient().client
 machine = connection.MistConnectionClient().machine
@@ -57,8 +48,8 @@ kube_type = 'master' if is_master else 'worker'
 ctx.logger.info('Setting up Kubernetes %s Node...', kube_type.upper())
 
 if is_master:
-    # Master's private IP
-    ctx.instance.runtime_properties['master_ip'] = machine.info[
+    # Master's private IP. Used for all communications before Master and Workers
+    ctx.instance.runtime_properties['master_private_ip'] = machine.info[
         'private_ips'][0]
     # Token for secure Master-Worker communication
     ctx.instance.runtime_properties['master_token'] = '%s.%s' % \
@@ -66,9 +57,8 @@ if is_master:
                                                        random_string())
 else:
     kube_master = ctx.instance.relationships[0]._target.instance
-    # Master's private IP
-    ctx.instance.runtime_properties['master_ip'] = \
-        kube_master.runtime_properties.get('master_ip', '')
+    ctx.instance.runtime_properties['master_private_ip'] = \
+        kube_master.runtime_properties.get('master_private_ip', '')
     ctx.instance.runtime_properties['master_token'] = \
         kube_master.runtime_properties.get('master_token', '')
     ctx.instance.runtime_properties['script_id'] = \
@@ -80,7 +70,7 @@ if not is_configured:
                         'resource ID: %s', ctx.instance.runtime_properties[
                                            'script_id'])
     else:
-        script_name = 'install_kubernetes_%s' % uuid.uuid1().hex 
+        script_name = 'install_kubernetes_%s' % random_string(length=4)
         ctx.logger.info('Uploading Kubernetes installation script [%s]...',
                         script_name)
         script = client.add_script(name=script_name, script=kubernetes_script,
@@ -98,7 +88,7 @@ if not is_configured:
                          ctx.instance.runtime_properties['master_token'])
     else:
         script_params = "-m '%s' -r 'node' -t '%s'" % \
-                        (ctx.instance.runtime_properties['master_ip'],
+                        (ctx.instance.runtime_properties['master_private_ip'],
                          ctx.instance.runtime_properties['master_token'])
 
     ctx.logger.info('Deploying Kubernetes on %s node...', kube_type.upper())
@@ -121,17 +111,14 @@ if not is_configured:
             _extra_stdout = job['logs'][2]['extra_output']
             _stdout += _extra_stdout if _extra_stdout else ''
             ctx.logger.error(_stdout)
-            raise NonRecoverableError('Kubernetes %s installation failed',
-                                      kube_type.upper())
-        if time() > started_at + SCRIPT_TIMEOUT:
-            raise NonRecoverableError('Kubernetes %s installation script '
-                                      'is taking too long! Giving up...',
-                                      kube_type.upper())
+            raise NonRecoverableError('Kubernetes installation failed')
+        if time() > started_at + CONSTANTS['SCRIPT_TIMEOUT']:
+            raise NonRecoverableError('Kubernetes installation script is '
+                                      'taking too long! Giving up...')
         if job['finished_at']:
             break
 
-        ctx.logger.info('Waiting for Kubernetes %s installation to finish...',
-                        kube_type.upper())
+        ctx.logger.info('Waiting for Kubernetes installation to finish...')
         sleep(10)
         job = client.get_job(job_id)
 
