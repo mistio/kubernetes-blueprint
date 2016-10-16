@@ -24,8 +24,7 @@ class LocalStorage(object):
         Searches for the file in local-storage that corresponds to the node
         provided
         """
-        local_storage = self.find_storage(node)
-        instance_file = glob.glob(local_storage)[0]
+        instace_file = self.fetch_instance_file(node)
         print '*******************' + instance_file
         with open(instance_file, 'r') as _instance:
             instance_from_file = _instance.read()
@@ -49,17 +48,20 @@ class LocalStorage(object):
         print '************' + self.instance_from_file['runtime_properties']
         return self.instance_from_file['runtime_properties']
 
-    def find_storage(self, node):
+    def fetch_instance_file(self, node):
         """
         Tries to discover the path of local-storage in order to fetch the
         required node instance
         """
-        node_file = os.path.join('/tmp/templates',
-                                 'mistio-kubernetes-blueprint-[A-Za-z0-9]*',
-                                 STORAGE % node)
+        local_storage = os.path.join('/tmp/templates',
+                                     'mistio-kubernetes-blueprint-[A-Za-z0-9]*',
+                                     STORAGE % node)
+        local_storage = glob.glob(local_storage)
+        if local_storage:
+            local_storage = local_storage[0]
         # TODO: Well, this is weird, but the local-storage exists on a different
         # path in case a user executes `cfy local` directly from his terminal
-        if not os.path.exists(node_file):
+        else:
             if not os.path.exists(os.path.join('..', STORAGE % node)):
                 raise Exception('Failed to locate local-storage')
             node_file = os.path.join('..', STORAGE % node)
