@@ -132,7 +132,6 @@ node_types:
               type: integer
               default: 30
         associate: tasks/associate_nodes.py
-        authenticate: tasks/authenticate_nodes.py
 
   cloudify.mist.nodes.KubernetesWorker:
     derived_from: cloudify.mist.nodes.Server
