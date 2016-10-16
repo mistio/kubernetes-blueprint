@@ -70,7 +70,7 @@ def scale_cluster_down(quantity):
     # / deprecate
     # Private IP of Kubernetes Master
     #master_ip = master_machine.info['public_ips'][0]
-    master_ip = master_instance_from_file['runtime_properties']['master_ip']
+    master_ip = master_instance_from_file['runtime_properties']['ip']
 
     # NOTE: Such operations run asynchronously
     master_instance.execute_operation(
@@ -105,9 +105,12 @@ def scale_cluster_down(quantity):
             basic_auth = f.read()
 
         workctx.logger.info('Removing node from the Kubernetes cluster...')
-        workctx.logger.info('******************* %s, %s', basic_auth, master_ip)
-        requests.delete('https://%s@%s/api/v1/nodes/%s' % \
-                        (basic_auth, master_ip, worker_selfLink), verify=False)
+        remove_node = requests.delete('https://%s@%s/api/v1/nodes/%s' % \
+                                      (basic_auth, master_ip, worker_selfLink),
+                                      verify=False)
+        if not remove_node.ok:
+            ctx.logger.error('Failed to remove node \'%s\' from the '
+                             'Kubernetes cluster', worker_selfLink)
 
         if counter == quantity:
             break
