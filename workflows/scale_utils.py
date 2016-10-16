@@ -58,7 +58,7 @@ class LocalStorage(object):
                                      STORAGE % node)
         local_storage = glob.glob(local_storage)
         if local_storage:
-            local_storage = local_storage[0]
+            node_file = local_storage[0]
         # TODO: Well, this is weird, but the local-storage exists on a different
         # path in case a user executes `cfy local` directly from his terminal
         else:
