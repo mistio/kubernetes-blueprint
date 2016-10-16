@@ -8,8 +8,8 @@ import glob
 
 from time import time, sleep
 
-from utils import CONSTANTS
-from utils import random_string
+from task_utils import CONSTANTS
+from task_utils import random_string
 
 try:
     import connection
