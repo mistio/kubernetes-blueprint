@@ -41,7 +41,6 @@ except IOError:
 
 def scale_cluster_down(quantity):
     master = workctx.get_node('kube_master')
-    #master_instance = [instance for instance in master.instances][0]  # TODO
     # Get node directly from local-storage in order to have access to all of
     # its runtime_properties
     master_node = LocalStorage.get('kube_master')

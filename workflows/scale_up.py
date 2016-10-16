@@ -89,10 +89,6 @@ def scale_cluster_up(quantity):
                                       'it is missing', param)
         kwargs['%s_id' % param.split('_')[1]] = inputs[param]
     kwargs['networks'] = inputs.get('networks', [])
-#    image_id = inputs['mist_image']
-#    size_id = inputs['mist_size']
-#    location_id = inputs['mist_location']
-#    networks = inputs.get('networks', [])
 
     workctx.logger.info("Deploying %d '%s' node(s)", quantity, machine_name)
     job = cloud.create_machine(async=True, name=machine_name, key=key,

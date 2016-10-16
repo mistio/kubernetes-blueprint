@@ -21,7 +21,7 @@ class LocalStorage(object):
     """
     def __init__(self, node):
         """
-        Searches for the file in local-storage that corresponds to the node
+        Searches in local-storage for the file that corresponds to the node
         provided
         """
         instance_file = self.fetch_instance_file(node)
