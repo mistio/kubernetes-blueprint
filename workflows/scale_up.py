@@ -150,7 +150,6 @@ def scale_cluster_up(quantity):
                     created_machines.add(log['machine_id'])
                     pending_machines -= 1
                     if not pending_machines:
-                        workctx.logger.info('*********** %s', created_machines)
                         break
             else:
                 workctx.logger.info('Waiting for machine to become '
@@ -166,9 +165,9 @@ def scale_cluster_up(quantity):
                                location_type='inline', exec_type='executable')
 
     for m in created_machines:  # xrange(quantity):
-#        machine_name= \
-#            machine_name.rsplit('-', 1)[0] if quantity > 1 else machine_name
-#        machine_name += '-' + str(m + 1) if quantity > 1 else ''
+        machine_name= \
+            machine_name.rsplit('-', 1)[0] if quantity > 1 else machine_name
+        machine_name += '-' + str(m + 1) if quantity > 1 else ''
 
 #        inputs['name'] = machine_name
 #        # FIXME `other_machine` must be ERADICATED!
@@ -183,8 +182,8 @@ def scale_cluster_up(quantity):
 
         script_params = "-m '%s' -r 'node' -t '%s'" % (master_ip, master_token)
         script_id = script['id']
-#        workctx.logger.info('Kubernetes Worker installation started for %s',
-#                            machine_name)
+        workctx.logger.info('Kubernetes Worker installation started for %s',
+                            machine_name)
         script_job = client.run_script(script_id=script_id, cloud_id=cloud_id,
                                        machine_id=machine_id,
                                        script_params=script_params, su=True)
@@ -219,7 +218,7 @@ def scale_cluster_up(quantity):
         )
 
         workctx.logger.info('Kubernetes Worker %s installation script '
-                            'succeeded!', inputs['name'])
+                            'succeeded!', machine_name)
 
     workctx.logger.info('Upscaling Kubernetes cluster succeeded!')
 
