@@ -26,6 +26,7 @@ class LocalStorage(object):
         """
         local_storage = self.find_storage(node)
         instance_file = glob.glob(local_storage)[0]
+        print '*******************' + instance_file
         with open(instance_file, 'r') as _instance:
             instance_from_file = _instance.read()
 
@@ -45,6 +46,7 @@ class LocalStorage(object):
         Returns the node instance's runtime properties in a way similiar to
         `ctx`
         """
+        print '************' + self.instance_from_file['runtime_properties']
         return self.instance_from_file['runtime_properties']
 
     def find_storage(self, node):
@@ -61,6 +63,7 @@ class LocalStorage(object):
             if not os.path.exists(os.path.join('..', STORAGE % node)):
                 raise Exception('Failed to locate local-storage')
             node_file = os.path.join('..', STORAGE % node)
+        print '****************************' + node_file
         return node_file
 
 
