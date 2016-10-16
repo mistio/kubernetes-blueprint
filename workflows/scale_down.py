@@ -58,13 +58,18 @@ def scale_cluster(delta):
 def scale_cluster_down(quantity):
     master = workctx.get_node('kube_master')
     master_instance = [instance for instance in master.instances][0]
+    # TODO Get runtime properties directly from local-storage
+    # Factor this out, since it exists in both workflow files atm
+    master_instance_from_file = instance_from_local_storage(
+        instance='kube_master')
     # TODO deprecate this! /
     mist_client = connection.MistConnectionClient(properties=master.properties)
     cloud = mist_client.cloud
     master_machine = mist_client.machine
     # / deprecate
     # Private IP of Kubernetes Master
-    master_ip = master_machine.info['public_ips'][0]
+    #master_ip = master_machine.info['public_ips'][0]
+    master_ip = master_instance_from_file['runtime_properties']['master_ip']
 
     # NOTE: Such operations run asynchronously
     master_instance.execute_operation(
@@ -106,6 +111,19 @@ def scale_cluster_down(quantity):
             break
 
     workctx.logger.info('Downscaling Kubernetes cluster succeeded!')
+
+
+def instance_from_local_storage(instance):
+    local_storage = os.path.join('/tmp/templates',
+                                 'mistio-kubernetes-blueprint-[A-Za-z0-9]*',
+                                 'local-storage/local/node-instances',
+                                 '%s_[A-Za-z0-9]*' % instance)
+
+    instance_file = glob.glob(local_storage)[0]
+    with open(instance_file, 'r') as ifile:
+        node_instance = ifile.read()
+
+    return json.loads(node_instance)
 
 
 scale_cluster(inputs['delta'])
