@@ -3,7 +3,7 @@ import random
 
 
 CONSTANTS = {
-    'SCRIPT_TIMOUT': 60 * 30
+    'SCRIPT_TIMEOUT': 60 * 30
 }
 
 
