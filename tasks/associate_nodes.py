@@ -23,7 +23,9 @@ machine = client.other_machine(kwargs)
 
 node_instance['node_id'] = 'kube_worker'
 node_instance['name'] = 'kube_worker'
-node_instance['id'] = ('kube_worker_' + ''.join(choice(string.letters + string.digits) for _ in range(5))).lower()
+node_instance['id'] = \
+    ('kube_worker_' + \
+     ''.join(choice(string.letters + string.digits) for _ in range(5))).lower()
 node_instance['host_id'] = node_instance['id']
 node_instance['version'] = 9  # TODO
 node_instance['state'] = 'started'
@@ -68,3 +70,4 @@ node_instance['relationships'] = [
 _storage = os.path.join(os.getcwd(), 'local-storage/local/node-instances')
 with open(os.path.join(_storage, node_instance['id']), 'w') as _instance_file:
     _instance_file.write(json.dumps(node_instance))
+

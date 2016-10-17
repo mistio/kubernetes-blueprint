@@ -7,7 +7,11 @@ import uuid
 import pkg_resources
 import glob
 
+import string
+import random
+
 from time import time, sleep
+
 
 try:
     import connection
@@ -16,121 +20,119 @@ except ImportError:
     import connection
 
 
-resource_package = __name__  # Could be any module/package name.
+# FIXME
+resource_package = __name__
+
 try:
-    resource_path = os.path.join('../scripts', 'worker.sh')
-    install_worker_script = pkg_resources.resource_string(resource_package, resource_path)
-    resource_path = os.path.join('../scripts', 'master.sh')
-    install_master_script = pkg_resources.resource_string(resource_package, resource_path)
-    resource_path = os.path.join('../scripts', 'coreos_master.sh')
-    install_coreos_master_script = pkg_resources.resource_string(resource_package, resource_path)
-    resource_path = os.path.join('../scripts', 'coreos_worker.sh')
-    install_coreos_worker_script = pkg_resources.resource_string(resource_package, resource_path)
+    # This path is for `cfy local` executions
+    resource_path = os.path.join('../scripts', 'mega-deploy.sh')
+    kubernetes_script = \
+        pkg_resources.resource_string(resource_package, resource_path)
 except IOError:
+    # This path is for executions performed by Mist.io
     tmp_dir = os.path.join('/tmp/templates',
                            'mistio-kubernetes-blueprint-[A-Za-z0-9]*',
                            'scripts')
     scripts_dir = glob.glob(tmp_dir)[0]
-    resource_path = os.path.join(scripts_dir, 'worker.sh')
+    resource_path = os.path.join(scripts_dir, 'mega-deploy.sh')
     with open(resource_path) as f:
-        install_worker_script = f.read()
-    resource_path = os.path.join(scripts_dir, 'master.sh')
-    with open(resource_path) as f:
-        install_master_script = f.read()
-    resource_path = os.path.join(scripts_dir, 'coreos_master.sh')
-    with open(resource_path) as f:
-        install_coreos_master_script = f.read()
-    resource_path = os.path.join(scripts_dir, 'coreos_worker.sh')
-    with open(resource_path) as f:
-        install_coreos_worker_script = f.read()
+        kubernetes_script = f.read()
 
+
+SCRIPT_TIMEOUT = 60 * 30
+
+
+def random_string(length=6):
+    _chars = string.letters + string.digits
+    return ''.join(random.choice(_chars) for _ in range(length))
+
+# TODO deprecate this!
 client = connection.MistConnectionClient().client
 machine = connection.MistConnectionClient().machine
-if ctx.node.properties["master"]:
-    kub_type = "master"
-    ctx.instance.runtime_properties["master_ip"] = machine.info["private_ips"][0]
-    if ctx.node.properties["coreos"]:
-        install_script = install_coreos_master_script
-    else:
-        install_script = install_master_script
+
+is_configured = ctx.node.properties['configured']
+is_master = ctx.node.properties['master']
+kube_type = 'master' if is_master else 'worker'
+
+ctx.logger.info('Setting up Kubernetes %s Node...', kube_type.upper())
+
+if is_master:
+    # Master's private IP
+    ctx.instance.runtime_properties['master_ip'] = \
+        machine.info['private_ips'][0]
+    # Token for secure Master-Worker communication
+    ctx.instance.runtime_properties['master_token'] = \
+        '%s.%s' % (random_string(), random_string())
 else:
-    kub_type = "worker"
-    ctx.instance.runtime_properties["master_ip"] = \
-        ctx.instance.relationships[0]._target.instance.runtime_properties["master_ip"]
-    if ctx.node.properties["coreos"]:
-        install_script = install_coreos_worker_script
+    kube_master = ctx.instance.relationships[0]._target.instance
+    # Master's private IP
+    ctx.instance.runtime_properties['master_ip'] = \
+        kube_master.runtime_properties.get('master_ip', '')
+    ctx.instance.runtime_properties['master_token'] = \
+        kube_master.runtime_properties.get('master_token', '')
+    ctx.instance.runtime_properties['script_id'] = \
+        kube_master.runtime_properties.get('script_id', '')
+
+if not is_configured:
+    if not is_master and ctx.instance.runtime_properties['script_id']:
+        ctx.logger.info('Found existing Kubernetes installation script with '
+                        'resource ID: %s', ctx.instance.runtime_properties[
+                                           'script_id'])
     else:
-        install_script = install_worker_script
+        script_name = 'install_kubernetes_%s' % uuid.uuid1().hex 
+        ctx.logger.info('Uploading Kubernetes installation script [%s]...',
+                        script_name)
+        script = client.add_script(name=script_name, script=kubernetes_script,
+                                   location_type='inline',
+                                   exec_type='executable')
+        ctx.instance.runtime_properties['script_id'] = script['id']
 
-if not ctx.node.properties["configured"]:
-    if not ctx.node.properties["coreos"]:
-        script = """#!/bin/sh
-        command_exists() {
-        command -v "$@" > /dev/null 2>&1
-        }
-        if command_exists curl; then
-        curl -sSL https://get.docker.com/ | sh
-        elif command_exists wget; then
-        wget -qO- https://get.docker.com/ | sh
-        fi
-        """
-        response = client.add_script(name="install_docker" + kub_type + uuid.uuid1().hex,
-                                     script=script, location_type="inline",
-                                     exec_type="executable")
-        script_id = response['id']
-        machine_id = ctx.instance.runtime_properties['machine_id']
-        cloud_id = ctx.node.properties['parameters']['cloud_id']
-        job_id = client.run_script(script_id=script_id, cloud_id=cloud_id,
-                                   machine_id=machine_id, script_params="",
-                                   su=False)
-        ctx.logger.info("Docker installation started")
-        job_id = job_id["job_id"]
-        job = client.get_job(job_id)
-        while True:
-            if job["error"]:
-                raise NonRecoverableError("Not able to install docker")
-            if job["finished_at"]:
-                break
-            sleep(10)
-            job = client.get_job(job_id)
-        ctx.logger.info(job["logs"][2]['stdout'])
-        ctx.logger.info(job["logs"][2]['extra_output'])
-        ctx.logger.info("Docker installation script succeeded")
+    if is_master:
+        passwd = ctx.node.properties.get('auth_pass', '') or random_string(10)
+        ctx.instance.runtime_properties['auth_user'] = \
+            ctx.node.properties['auth_user']
+        ctx.instance.runtime_properties['auth_pass'] = passwd
+        script_params = "-u '%s' -p '%s' -r 'master' -t '%s'" % \
+                        (ctx.node.properties['auth_user'], passwd,
+                         ctx.instance.runtime_properties['master_token'])
+    else:
+        script_params = "-m '%s' -r 'node' -t '%s'" % \
+                        (ctx.instance.runtime_properties['master_ip'],
+                         ctx.instance.runtime_properties['master_token'])
 
-    response = client.add_script(name="install_kubernetes_" + kub_type + uuid.uuid1().hex,
-                                 script=install_script, location_type="inline",
-                                 exec_type="executable")
-    script_id = response['id']
+    ctx.logger.info('Deploying Kubernetes on %s node...', kube_type.upper())
     machine_id = ctx.instance.runtime_properties['machine_id']
     cloud_id = ctx.node.properties['parameters']['cloud_id']
-    if kub_type == "master":
-        import string
-        from random import choice
-        passwd = ctx.node.properties['auth_pass'] or \
-            ''.join(choice(string.letters + string.digits) for _ in range(10))
-        ctx.instance.runtime_properties['auth_user'] = ctx.node.properties['auth_user']
-        ctx.instance.runtime_properties['auth_pass'] = passwd
-        script_params = "-u '{0}' -p '{1}'".format(ctx.node.properties['auth_user'],
-                                                   passwd)
-    else:
-        script_params = "-m '{0}'".format(ctx.instance.runtime_properties["master_ip"])
-    job_id = client.run_script(script_id=script_id, cloud_id=cloud_id,
-                               machine_id=machine_id,
-                               script_params=script_params, su=True)
-    ctx.logger.info("Kubernetes {0} installation started".format(kub_type))
-    job_id = job_id["job_id"]
-    started_at = job_id["started_at"] 
+    script_id = ctx.instance.runtime_properties['script_id']
+
+    script_job = client.run_script(script_id=script_id, cloud_id=cloud_id,
+                                   machine_id=machine_id,
+                                   script_params=script_params, su=True)
+
+    job_id = script_job['job_id']
     job = client.get_job(job_id)
+    started_at = job['started_at']
+
     while True:
-        if job["error"]:
-            raise NonRecoverableError("Not able to install kubernetes {0}".format(kub_type))
-        if time() > started_at + 60 * 30:
-            raise NonRecoverableError("Kubernetes {0} installation script "
-                                      "is taking too long!".format(kub_type))
-        if job["finished_at"]:
+        if job['error']:
+            # Print entire output only in case an error has occured
+            _stdout = job['logs'][2]['stdout']
+            _extra_stdout = job['logs'][2]['extra_output']
+            _stdout += _extra_stdout if _extra_stdout else ''
+            ctx.logger.error(_stdout)
+            raise NonRecoverableError('Kubernetes %s installation failed',
+                                      kube_type.upper())
+        if time() > started_at + SCRIPT_TIMEOUT:
+            raise NonRecoverableError('Kubernetes %s installation script '
+                                      'is taking too long! Giving up...',
+                                      kube_type.upper())
+        if job['finished_at']:
             break
+
+        ctx.logger.info('Waiting for Kubernetes %s installation to finish...',
+                        kube_type.upper())
         sleep(10)
         job = client.get_job(job_id)
-    ctx.logger.info(job["logs"][2]['stdout'])
-    ctx.logger.info(job["logs"][2]['extra_output'])
-    ctx.logger.info("Kubernetes {0} installation script succeeded".format(kub_type))
+
+    ctx.logger.info('Kubernetes %s installation succeeded!', kube_type.upper())
+
