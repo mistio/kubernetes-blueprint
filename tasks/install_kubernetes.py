@@ -8,8 +8,8 @@ import glob
 
 from time import time, sleep
 
-from task_utils import CONSTANTS
-from task_utils import random_string
+from utils import random_string
+from constants import SCRIPT_TIMEOUT
 
 try:
     import connection
@@ -112,7 +112,7 @@ if not is_configured:
             _stdout += _extra_stdout if _extra_stdout else ''
             ctx.logger.error(_stdout)
             raise NonRecoverableError('Kubernetes installation failed')
-        if time() > started_at + CONSTANTS['SCRIPT_TIMEOUT']:
+        if time() > started_at + SCRIPT_TIMEOUT:
             raise NonRecoverableError('Kubernetes installation script is '
                                       'taking too long! Giving up...')
         if job['finished_at']:
