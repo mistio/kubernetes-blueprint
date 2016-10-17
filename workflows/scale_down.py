@@ -4,16 +4,15 @@ from cloudify.exceptions import NonRecoverableError
 
 import sys
 import os
-import uuid
 import pkg_resources
 import glob
 import requests
 import json
 
-import string
-import random
-
 from time import time, sleep
+
+from scale_utils import LocalStorage
+
 
 try:
     import connection
@@ -40,43 +39,20 @@ except IOError:
         kubernetes_script = f.read()
 
 
-def scale_cluster(delta):
-    if isinstance(delta, basestring):
-        delta = int(delta)
-
-    if delta == 0:
-        workctx.logger.info('Delta parameter equals 0! No scaling will '
-                            'take place')
-        return
-    else:
-        # TODO verify that (current number of nodes) - (delta) > 0
-        delta = abs(delta)
-        workctx.logger.info('Scaling Kubernetes cluster down '
-                            'by %s node(s)', delta)
-        scale_cluster_down(delta)
-
-
 def scale_cluster_down(quantity):
     master = workctx.get_node('kube_master')
-    master_instance = [instance for instance in master.instances][0]
-    # TODO Get runtime properties directly from local-storage
-    # Factor this out, since it exists in both workflow files atm
-    master_instance_from_file = instance_from_local_storage(
-        instance='kube_master')
+    # Get node directly from local-storage in order to have access to all of
+    # its runtime_properties
+    master_node = LocalStorage.get('kube_master')
+    # Public IP of the Kubernetes Master used to remove nodes from the cluster
+    master_ip = master_node.runtime_properties['ip']
+    username = master_node.runtime_properties['auth_user']
+    password = master_node.runtime_properties['auth_pass']
     # TODO deprecate this! /
     mist_client = connection.MistConnectionClient(properties=master.properties)
     cloud = mist_client.cloud
     master_machine = mist_client.machine
     # / deprecate
-    # Private IP of Kubernetes Master
-    #master_ip = master_machine.info['public_ips'][0]
-    master_ip = master_instance_from_file['runtime_properties']['ip']
-
-    # NOTE: Such operations run asynchronously
-    master_instance.execute_operation(
-        'cloudify.interfaces.lifecycle.authenticate',
-        kwargs={'action': 'disassociate'}
-    )
 
     worker_name = inputs.get('worker_name')
     if not worker_name:
@@ -93,21 +69,17 @@ def scale_cluster_down(quantity):
     for m in machines:
         if not m.info['state'] in ('stopped', 'running'):
             continue
-        counter += 1
         # Properly modify the IP in order to be used in the URL
         worker_priv_ip = m.info['private_ips'][0]
         worker_selfLink = 'ip-' + str(worker_priv_ip).replace('.', '-')
         # Destroy machine
         m.destroy()
-
-        # Get the token from file in order to secure communication
-        with open('/tmp/cloudify-mist-plugin-kubernetes-credentials', 'r') as f:
-            basic_auth = f.read()
+        counter += 1
 
         workctx.logger.info('Removing node from the Kubernetes cluster...')
-        remove_node = requests.delete('https://%s@%s/api/v1/nodes/%s' % \
-                                      (basic_auth, master_ip, worker_selfLink),
-                                      verify=False)
+        remove_node = requests.delete('https://%s:%s@%s/api/v1/nodes/%s' % \
+                                      (username, password, master_ip,
+                                       worker_selfLink), verify=False)
         if not remove_node.ok:
             ctx.logger.error('Failed to remove node \'%s\' from the '
                              'Kubernetes cluster', worker_selfLink)
@@ -118,17 +90,20 @@ def scale_cluster_down(quantity):
     workctx.logger.info('Downscaling Kubernetes cluster succeeded!')
 
 
-def instance_from_local_storage(instance):
-    local_storage = os.path.join('/tmp/templates',
-                                 'mistio-kubernetes-blueprint-[A-Za-z0-9]*',
-                                 'local-storage/local/node-instances',
-                                 '%s_[A-Za-z0-9]*' % instance)
+def scale_cluster(delta):
+    if isinstance(delta, basestring):
+        delta = int(delta)
 
-    instance_file = glob.glob(local_storage)[0]
-    with open(instance_file, 'r') as ifile:
-        node_instance = ifile.read()
-
-    return json.loads(node_instance)
+    if delta == 0:
+        workctx.logger.info('Delta parameter equals 0! No scaling will '
+                            'take place')
+        return
+    else:
+        # TODO verify that (current number of nodes) - (delta) > 0
+        delta = abs(delta)
+        workctx.logger.info('Scaling Kubernetes cluster down '
+                            'by %s node(s)', delta)
+        scale_cluster_down(delta)
 
 
 scale_cluster(inputs['delta'])

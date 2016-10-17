@@ -56,7 +56,7 @@ node_instance['runtime_properties'] = {
     'mist_type': 'machine',
     'machine_id': machine.info['id'],
     'ip': machine.info['public_ips'][0],
-    'master_ip': ctx.instance.runtime_properties['master_ip'],
+    'master_private_ip': ctx.instance.runtime_properties['master_private_ip'],
     'networks:': [machine.info['public_ips'][0]]
 }
 node_instance['relationships'] = [
