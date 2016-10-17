@@ -11,9 +11,9 @@ import glob
 
 from time import time, sleep
 
-from scale_utils import CONSTANTS
-from scale_utils import random_name, random_chars
-from scale_utils import LocalStorage
+from utils import LocalStorage
+from utils import generate_name, random_string
+from constants import CREATE_TIMEOUT, SCRIPT_TIMEOUT
 
 
 try:
@@ -62,7 +62,7 @@ def scale_cluster_up(quantity):
         machine = mist_client.other_machine(inputs)
 
     # Name of the new Kubernetes Worker
-    machine_name = inputs.get('worker_name', '') or random_name()
+    machine_name = inputs.get('worker_name', '') or generate_name()
     machines = cloud.machines(search=machine_name)
     if len(machines):
         for m in machines:
@@ -103,7 +103,7 @@ def scale_cluster_up(quantity):
         if err:
             workctx.logger.error('An error occured during machine provisioning')
             raise NonRecoverableError(err)
-        elif time() > started_at + CONSTANTS['CREATE_TIMEOUT']:
+        elif time() > started_at + CREATE_TIMEOUT:
             raise NonRecoverableError('Machine creation is taking too long! '
                                       'Backing away...')
         else:
@@ -125,7 +125,7 @@ def scale_cluster_up(quantity):
 
     workctx.logger.debug('Re-uploading Kubernetes installation script just '
                          'in case...')
-    script_name = 'install_kubernetes_%s' % random_chars()
+    script_name = 'install_kubernetes_%s' % random_string()
     script = client.add_script(name=script_name, script=kubernetes_script,
                                location_type='inline', exec_type='executable')
 
@@ -152,7 +152,7 @@ def scale_cluster_up(quantity):
                 workctx.logger.error('Encountered an error during '
                                      'Kubernetes installation:\n%s', _stdout)
                 raise NonRecoverableError('Installation of Kubernetes failed')
-            if time() > started_at + CONSTANTS['SCRIPT_TIMEOUT']:
+            if time() > started_at + SCRIPT_TIMEOUT:
                 raise NonRecoverableError('Installation of Kubernetes is '
                                           'taking too long! Giving up...')
             if job['finished_at']:
