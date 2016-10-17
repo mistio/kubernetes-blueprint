@@ -11,7 +11,7 @@ import json
 
 from time import time, sleep
 
-from scale_utils import LocalStorage
+from utils import LocalStorage
 
 
 try:

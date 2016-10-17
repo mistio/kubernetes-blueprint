@@ -13,7 +13,7 @@ from time import time, sleep
 
 from utils import LocalStorage
 from utils import generate_name, random_string
-from utils import CREATE_TIMEOUT, SCRIPT_TIMEOUT
+from constants import CREATE_TIMEOUT, SCRIPT_TIMEOUT
 
 
 try:
