@@ -8,6 +8,7 @@ import uuid
 import pkg_resources
 import glob
 import requests
+import json
 
 import string
 import random
@@ -26,8 +27,8 @@ resource_package = __name__
 try:
     # This path is for `cfy local` executions
     resource_path = os.path.join('../scripts', 'mega-deploy.sh')
-    kubernetes_script = \
-        pkg_resources.resource_string(resource_package, resource_path)
+    kubernetes_script = pkg_resources.resource_string(resource_package,
+                                                      resource_path)
 except IOError:
     # This path is for executions performed by Mist.io
     tmp_dir = os.path.join('/tmp/templates',
@@ -39,7 +40,7 @@ except IOError:
         kubernetes_script = f.read()
 
 
-CREATE_TIMEOUT = 60 * 5
+CREATE_TIMEOUT = 60 * 10
 SCRIPT_TIMEOUT = 60 * 30
 
 
@@ -52,36 +53,35 @@ def random_name(length=4):
     return 'MistCfyNode-%s-%s' % (random_chars(length), random_chars(length))
 
 
-def scale_cluster():
-    delta = inputs.get('delta')
+def scale_cluster(delta):
     if isinstance(delta, basestring):
         delta = int(delta)
 
     if delta == 0:
-        workctx.logger.info('Delta parameter equals 0! No scaling will take '
-                            'place')
+        workctx.logger.info('Delta parameter equals 0! No scaling will '
+                            'take place')
         return
-    elif delta > 0:
-        workctx.logger.info('Scaling Kubernetes cluster up by %s node(s)',
-                            delta)
+    else:
+        workctx.logger.info('Scaling Kubernetes cluster up '
+                            'by %s node(s)', delta)
         scale_cluster_up(delta)
-    elif delta < 0:
-        # TODO verify that (current number of nodes) - (delta) > 0
-        workctx.logger.info('Scaling Kubernetes cluster down by %s node(s)',
-                            abs(delta))
-        scale_cluster_down(abs(delta))
 
 
-def scale_cluster_up(delta):
+def scale_cluster_up(quantity):
     master = workctx.get_node('kube_master')
     master_instance = [instance for instance in master.instances][0]
+    # TODO Get runtime properties directly from local-storage
+    master_instance_from_file = instance_from_local_storage(
+        instance='kube_master')
     # TODO deprecate this! /
     mist_client = connection.MistConnectionClient(properties=master.properties)
     client = mist_client.client
     cloud = mist_client.cloud
     master_machine = mist_client.machine
     # Private IP of the Kubernetes Master
-    master_ip = master_machine.info['private_ips'][0]
+    # FIXME
+    #master_ip = master_machine.info['private_ips'][0]
+    master_ip = master_instance_from_file['runtime_properties']['master_ip']
     # /deprecate
 
     # NOTE: Such operations run asynchronously
@@ -90,7 +90,7 @@ def scale_cluster_up(delta):
         kwargs={'action': 'associate'}
     )
 
-    if inputs['use_external_resource']:
+    if inputs.get('use_external_resource', False):
         machine = mist_client.other_machine(inputs)  # FIXME
 
     # Name of the new Kubernetes Worker
@@ -124,8 +124,7 @@ def scale_cluster_up(delta):
     location_id = inputs['mist_location']
     networks = inputs.get('networks', [])
 
-    workctx.logger.info("Deploying %d '%s' node(s)", delta, machine_name)
-    quantity = delta
+    workctx.logger.info("Deploying %d '%s' node(s)", quantity, machine_name)
     job = cloud.create_machine(async=True, name=machine_name, key=key,
                                image_id=image_id, location_id=location_id,
                                size_id=size_id, quantity=quantity,
@@ -135,53 +134,56 @@ def scale_cluster_up(delta):
     job = client.get_job(job_id)
     started_at = time()
 
-    workctx.logger.info('Machine creation succeeded. Probing...')
     while True:
-        if job['summary']['probe']['success']:
-            workctx.logger.info('Machine probed successfully')
-            break
-        if job['summary']['create']['error'] or \
-            job['summary']['probe']['error']:
-            err = job['logs'][2]
-            if err.get('error', ''):
-                workctx.logger.error('An error occured, while probing '
-                                     'machine\n%s', err.get('error', ''))
-            raise NonRecoverableError('Machine has encountered an error')
-
-        if time() > started_at + CREATE_TIMEOUT:
+        err = job.get('error')
+        if err:
+            workctx.logger.error('An error occured during machine creation')
+            raise NonRecoverableError(err)
+        elif time() > started_at + CREATE_TIMEOUT:
             raise NonRecoverableError('Machine creation is taking too long! '
                                       'Backing away...')
-
-        workctx.logger.info('Waiting for machine to become responsive...')
-        sleep(10)
-        job = client.get_job(job_id)
+        else:
+            pending_machines = quantity
+            created_machines = set()
+            for log in job['logs']:
+                if 'post_deploy_finished' in log.values():
+                    created_machines.add(log['machine_id'])
+                    pending_machines -= 1
+                    if not pending_machines:
+                        break
+            else:
+                workctx.logger.info('Waiting for machine to become '
+                                    'responsive...')
+                sleep(10)
+                job = client.get_job(job_id)
+                continue
+        break
 
     # FIXME re-uploading Kubernetes script
     script_name = 'install_kubernetes_%s' % uuid.uuid1().hex
     script = client.add_script(name=script_name, script=kubernetes_script,
                                location_type='inline', exec_type='executable')
 
-    for m in xrange(quantity):
-        machine_name = \
-            machine_name.rsplit('-', 1)[0] if quantity > 1 else machine_name
-        machine_name += '-' + str(m + 1) if quantity > 1 else ''
+    for m in created_machines:  # xrange(quantity):
+#        machine_name= \
+#            machine_name.rsplit('-', 1)[0] if quantity > 1 else machine_name
+#        machine_name += '-' + str(m + 1) if quantity > 1 else ''
 
-        inputs['name'] = machine_name
-        # FIXME `other_machine` must be ERADICATED!
-        machine = mist_client.other_machine(inputs)
-        inputs['machine_id'] = machine.info['id']
-
-        machine_id = inputs['machine_id']
+#        inputs['name'] = machine_name
+#        # FIXME `other_machine` must be ERADICATED!
+#        machine = mist_client.other_machine(inputs)
+#        inputs['machine_id'] = machine.info['id']
+        machine_id = m  # inputs['machine_id']
         cloud_id = inputs['mist_cloud']
 
         # Get the token from file in order to secure communication
-        with open('/tmp/master_token', 'r') as f:
+        with open('/tmp/cloudify-mist-plugin-kubernetes-token', 'r') as f:
             master_token = f.read()
 
         script_params = "-m '%s' -r 'node' -t '%s'" % (master_ip, master_token)
         script_id = script['id']
-        workctx.logger.info('Kubernetes Worker installation started for %s',
-                            machine_name)
+        workctx.logger.info('Kubernetes Worker installation started for '
+                            'machine with ID \'%s\'', m)  # TODO
         script_job = client.run_script(script_id=script_id, cloud_id=cloud_id,
                                        machine_id=machine_id,
                                        script_params=script_params, su=True)
@@ -216,62 +218,23 @@ def scale_cluster_up(delta):
         )
 
         workctx.logger.info('Kubernetes Worker %s installation script '
-                            'succeeded!', inputs['name'])
+                            'succeeded!')
 
     workctx.logger.info('Upscaling Kubernetes cluster succeeded!')
 
 
-def scale_cluster_down(delta):
-    master = workctx.get_node('kube_master')
-    master_instance = [instance for instance in master.instances][0]
-    # TODO deprecate this! /
-    mist_client = connection.MistConnectionClient(properties=master.properties)
-    cloud = mist_client.cloud
-    master_machine = mist_client.machine
-    # / deprecate
-    # Private IP of Kubernetes Master
-    master_ip = master_machine.info['public_ips'][0]
+def instance_from_local_storage(instance):
+    local_storage = os.path.join('/tmp/templates',
+                                 'mistio-kubernetes-blueprint-[A-Za-z0-9]*',
+                                 'local-storage/local/node-instances',
+                                 '%s_[A-Za-z0-9]*' % instance)
 
-    # NOTE: Such operations run asynchronously
-    master_instance.execute_operation(
-        'cloudify.interfaces.lifecycle.authenticate',
-        kwargs={'action': 'disassociate'}
-    )
+    instance_file = glob.glob(local_storage)[0]
+    with open(instance_file, 'r') as ifile:
+        node_instance = ifile.read()
 
-    worker_name = inputs.get('worker_name')
-    if not worker_name:
-        raise NonRecoverableError('Kubernetes Worker\'s name is missing')
-
-    machines = cloud.machines(search=worker_name)
-    if not machines:
-        workctx.logger.warn('Cannot find node \'%s\'. Already removed? '
-                            'Exiting...', worker_name)
-        return
-
-    workctx.logger.info('Terminating %d Kubernetes Worker(s)...', len(machines))
-    counter = 0
-    for m in machines:
-        if not m.info['state'] in ('stopped', 'running'):
-            continue
-        counter += 1
-        # Properly modify the IP in order to be used in the URL
-        worker_priv_ip = m.info['private_ips'][0]
-        worker_selfLink = 'ip-' + str(worker_priv_ip).replace('.', '-')
-        # Destroy machine
-        m.destroy()
-
-        # Get the token from file in order to secure communication
-        with open('/tmp/credentials', 'r') as f:
-            basic_auth = f.read()
-
-        workctx.logger.info('Removing node from the Kubernetes cluster...')
-        requests.delete('https://%s@%s/api/v1/nodes/%s' % \
-                        (basic_auth, master_ip, worker_selfLink), verify=False)
-
-        if counter == delta:
-            break
-
-    workctx.logger.info('Downscaling Kubernetes cluster succeeded!')
+    return json.loads(node_instance)
 
 
-scale_cluster()
+scale_cluster(inputs['delta'])
+
