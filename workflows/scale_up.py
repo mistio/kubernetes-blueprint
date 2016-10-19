@@ -146,7 +146,9 @@ def scale_cluster_up(quantity):
 
         while True:
             for log in job['logs']:
-                if log['action'] == 'script_finished':
+                if log['action'] == 'script_finished' and \
+                    log.get('script_id', '') == script_id and \
+                        log.get('machine_id', '') == machine_id:
                     if not log['error']:
                         break
                     # Print entire output only in case an error has occured
@@ -161,9 +163,12 @@ def scale_cluster_up(quantity):
                     raise NonRecoverableError('Kubernetes installation script '
                                               'is taking too long. Giving up')
 
-            workctx.logger.info('Waiting for Kubernetes installation to finish')
-            sleep(10)
-            job = client.get_job(job_id)
+                workctx.logger.info('Waiting for Kubernetes installation to '
+                                    'finish')
+                sleep(10)
+                job = client.get_job(job_id)
+                continue
+            break
 
         # NOTE: This is an asynchronous operation
         master_instance.execute_operation(

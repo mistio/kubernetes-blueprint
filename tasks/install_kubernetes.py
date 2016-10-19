@@ -106,7 +106,9 @@ if not is_configured:
 
     while True:
         for log in job['logs']:
-            if log['action'] == 'script_finished':
+            if log['action'] == 'script_finished' and \
+                log.get('script_id', '') == script_id and \
+                    log.get('machine_id', '') == machine_id:
                 if not log['error']:
                     break
                 # Print entire output only in case an error has occured
@@ -119,10 +121,11 @@ if not is_configured:
             if time() > started_at + SCRIPT_TIMEOUT:
                 raise NonRecoverableError('Kubernetes installation script is '
                                           'taking too long. Giving up')
-
-        ctx.logger.info('Waiting for Kubernetes installation to finish')
-        sleep(10)
-        job = client.get_job(job_id)
+            ctx.logger.info('Waiting for Kubernetes installation to finish')
+            sleep(10)
+            job = client.get_job(job_id)
+            continue
+        break
 
     ctx.logger.info('Kubernetes %s installation succeeded', kube_type.upper())
 
