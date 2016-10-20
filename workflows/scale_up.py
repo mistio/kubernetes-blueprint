@@ -145,24 +145,30 @@ def scale_cluster_up(quantity):
         started_at = job['started_at']
 
         while True:
-            if job['error']:
-                _stdout = job['logs'][2]['stdout']
-                _extra_stdout = job['logs'][2]['extra_output']
-                _stdout += _extra_stdout if _extra_stdout else ''
-                workctx.logger.error('Encountered an error during '
-                                     'Kubernetes installation:\n%s', _stdout)
-                raise NonRecoverableError('Installation of Kubernetes failed')
-            if time() > started_at + SCRIPT_TIMEOUT:
-                raise NonRecoverableError('Installation of Kubernetes is '
-                                          'taking too long! Giving up...')
-            if job['finished_at']:
-                workctx.logger.info('Kubernetes Worker installation script '
-                                    'succeeded!')
-                break
+            for log in job['logs']:
+                if log['action'] == 'script_finished' and \
+                    log.get('script_id', '') == script_id and \
+                        log.get('machine_id', '') == machine_id:
+                    if not log['error']:
+                        break
+                    # Print entire output only in case an error has occured
+                    _stdout = log['stdout']
+                    _extra_stdout = log['extra_output']
+                    _stdout += _extra_stdout if _extra_stdout else ''
+                    workctx.logger.error(_stdout)
+                    raise NonRecoverableError('Installation of Kubernetes '
+                                              'failed')
+            else:
+                if time() > started_at + SCRIPT_TIMEOUT:
+                    raise NonRecoverableError('Kubernetes installation script '
+                                              'is taking too long. Giving up')
 
-            workctx.logger.info('Waiting for Kubernetes to be installed...')
-            sleep(10)
-            job = client.get_job(job_id)
+                workctx.logger.info('Waiting for Kubernetes installation to '
+                                    'finish')
+                sleep(10)
+                job = client.get_job(job_id)
+                continue
+            break
 
         # NOTE: This is an asynchronous operation
         master_instance.execute_operation(
@@ -170,7 +176,7 @@ def scale_cluster_up(quantity):
             kwargs={'minion_id': machine_id}
         )
 
-    workctx.logger.info('Upscaling Kubernetes cluster succeeded!')
+    workctx.logger.info('Upscaling Kubernetes cluster succeeded')
 
 
 def scale_cluster(delta):
