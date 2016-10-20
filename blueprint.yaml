@@ -11,7 +11,7 @@ tosca_definitions_version: cloudify_dsl_1_2
 
 imports:
   - http://www.getcloudify.org/spec/cloudify/3.3m5/types.yaml
-  - http://raw.githubusercontent.com/mistio/cloudify-mist-plugin/master/plugin.yaml
+  - http://raw.githubusercontent.com/mistio/cloudify-mist-plugin/node_names/plugin.yaml
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # Inputs section
@@ -124,6 +124,15 @@ node_types:
         default: ''
     interfaces:
       cloudify.interfaces.lifecycle:
+        create:
+          implementation: mist.plugin.server.create
+          inputs:
+            use_external_resource:
+              default: false
+            mist_config:
+              default: {}
+            node_type:
+              default: 'master'
         configure:
           implementation: tasks/install_kubernetes.py
           inputs:
@@ -168,6 +177,15 @@ node_types:
         type: cloudify.datatypes.mist.Config
     interfaces:
       cloudify.interfaces.lifecycle:
+        create:
+          implementation: mist.plugin.server.create
+          inputs:
+            use_external_resource:
+              default: false
+            mist_config:
+              default: {}
+            node_type:
+              default: 'worker'
         configure:
           implementation: tasks/install_kubernetes.py
           inputs:

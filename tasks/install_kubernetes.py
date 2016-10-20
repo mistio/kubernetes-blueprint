@@ -48,13 +48,13 @@ kube_type = 'master' if is_master else 'worker'
 ctx.logger.info('Setting up Kubernetes %s Node...', kube_type.upper())
 
 if is_master:
-    # Master's private IP. Used for all communications before Master and Workers
+    # Master's private IP
     ctx.instance.runtime_properties['master_private_ip'] = machine.info[
         'private_ips'][0]
     # Token for secure Master-Worker communication
     ctx.instance.runtime_properties['master_token'] = '%s.%s' % \
-                                                      (random_string(),
-                                                       random_string())
+                                                      (random_string(length=6),
+                                                       random_string(length=6))
 else:
     kube_master = ctx.instance.relationships[0]._target.instance
     ctx.instance.runtime_properties['master_private_ip'] = \
