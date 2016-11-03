@@ -48,9 +48,11 @@ kube_type = 'master' if is_master else 'worker'
 ctx.logger.info('Setting up Kubernetes %s Node...', kube_type.upper())
 
 if is_master:
+    # Filter out IPv6 addresses
+    private_ips = machine.info['private_ips']
+    private_ips = filter(lambda ip: ':' not in ip, private_ips)
     # Master's private IP
-    ctx.instance.runtime_properties['master_private_ip'] = machine.info[
-        'private_ips'][0]
+    ctx.instance.runtime_properties['master_private_ip'] = private_ips[0]
     # Token for secure Master-Worker communication
     ctx.instance.runtime_properties['master_token'] = '%s.%s' % \
                                                       (random_string(length=6),
