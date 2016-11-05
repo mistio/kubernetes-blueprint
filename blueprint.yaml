@@ -127,10 +127,6 @@ node_types:
         create:
           implementation: mist.plugin.server.create
           inputs:
-            use_external_resource:
-              default: false
-            mist_config:
-              default: {}
             node_type:
               default: 'master'
         configure:
@@ -180,10 +176,6 @@ node_types:
         create:
           implementation: mist.plugin.server.create
           inputs:
-            use_external_resource:
-              default: false
-            mist_config:
-              default: {}
             node_type:
               default: 'worker'
         configure:
