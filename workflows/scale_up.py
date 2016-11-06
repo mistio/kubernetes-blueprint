@@ -48,7 +48,7 @@ def scale_cluster_up(quantity):
     # its runtime properties
     master_node = LocalStorage.get('kube_master')
     # Private IP of the Kubernetes Master
-    master_ip = master_node.runtime_properties['master_private_ip']
+    master_ip = master_node.runtime_properties['master_ip']
     master_token = master_node.runtime_properties['master_token']
     # TODO deprecate this! /
     mist_client = connection.MistConnectionClient(properties=master.properties)
