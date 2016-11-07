@@ -1162,7 +1162,7 @@ mkdir -p /etc/kubernetes/auth
 echo "$AUTH_PASSWORD,$AUTH_USERNAME,1" > /etc/kubernetes/auth/basicauth.csv
 
 # Initialize kubeadm
-kubeadm init --token "$TOKEN"
+kubeadm init --token "$TOKEN" --api-port 443
 
 # Wait for kube-apiserver to be up and running
 while true
@@ -1186,7 +1186,7 @@ cp tmp /etc/kubernetes/manifests/kube-apiserver.json
 
 install_node_ubuntu_centos() {
 # Join cluster
-kubeadm join --token $TOKEN $MASTER
+kubeadm join --api-port 443 --token $TOKEN $MASTER
 }
 
 
