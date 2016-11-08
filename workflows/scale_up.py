@@ -12,7 +12,7 @@ import glob
 from time import time, sleep
 
 from utils import LocalStorage
-from utils import generate_name, random_string
+from utils import get_stack_name, generate_name, random_string
 from constants import CREATE_TIMEOUT, SCRIPT_TIMEOUT
 
 
@@ -48,7 +48,7 @@ def scale_cluster_up(quantity):
     # its runtime properties
     master_node = LocalStorage.get('kube_master')
     # Private IP of the Kubernetes Master
-    master_ip = master_node.runtime_properties['master_private_ip']
+    master_ip = master_node.runtime_properties['master_ip']
     master_token = master_node.runtime_properties['master_token']
     # TODO deprecate this! /
     mist_client = connection.MistConnectionClient(properties=master.properties)
@@ -62,7 +62,8 @@ def scale_cluster_up(quantity):
         machine = mist_client.other_machine(inputs)
 
     # Name of the new Kubernetes Worker
-    machine_name = inputs.get('worker_name', '') or generate_name()
+    machine_name = inputs.get('worker_name', '') or generate_name(
+                                                    get_stack_name(), 'worker')
     machines = cloud.machines(search=machine_name)
     if len(machines):
         for m in machines:

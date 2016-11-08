@@ -1110,13 +1110,17 @@ ubuntu_main() {
 ################################################################################
 
 # Install needed packages
+apt-get install -y apt-transport-https | echo "Error while installing apt-transport-https. Moving forward"
+apt-get update
+apt-get install -y curl apt-transport-https
 curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | apt-key add -
 cat <<EOF > /etc/apt/sources.list.d/kubernetes.list
 deb http://apt.kubernetes.io/ kubernetes-xenial main
 EOF
 apt-get update
 apt-get install -y docker.io kubelet kubeadm kubectl kubernetes-cni curl
-
+systemctl enable docker && systemctl start docker
+systemctl enable kubelet && systemctl start kubelet
 if [ $ROLE = "master" ]; then
     install_master_ubuntu_centos
 elif [ $ROLE = "node" ]; then
@@ -1162,7 +1166,7 @@ mkdir -p /etc/kubernetes/auth
 echo "$AUTH_PASSWORD,$AUTH_USERNAME,1" > /etc/kubernetes/auth/basicauth.csv
 
 # Initialize kubeadm
-kubeadm init --token "$TOKEN"
+kubeadm init --token "$TOKEN" --api-port 443
 
 # Wait for kube-apiserver to be up and running
 while true
@@ -1186,7 +1190,7 @@ cp tmp /etc/kubernetes/manifests/kube-apiserver.json
 
 install_node_ubuntu_centos() {
 # Join cluster
-kubeadm join --token $TOKEN $MASTER
+kubeadm join --api-port 443 --token $TOKEN $MASTER
 }
 
 

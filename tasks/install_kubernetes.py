@@ -48,17 +48,23 @@ kube_type = 'master' if is_master else 'worker'
 ctx.logger.info('Setting up Kubernetes %s Node...', kube_type.upper())
 
 if is_master:
-    # Master's private IP. Used for all communications before Master and Workers
-    ctx.instance.runtime_properties['master_private_ip'] = machine.info[
-        'private_ips'][0]
+    # Filter out IPv6 addresses
+    private_ips = machine.info['private_ips']
+    private_ips = filter(lambda ip: ':' not in ip, private_ips)
+    if not private_ips:
+        public_ips = machine.info['public_ips']
+        public_ips = filter(lambda ip: ':' not in ip, public_ips)
+    master_ip = private_ips[0] if private_ips else public_ips[0]
+    # Master node's IP address
+    ctx.instance.runtime_properties['master_ip'] = master_ip
     # Token for secure Master-Worker communication
     ctx.instance.runtime_properties['master_token'] = '%s.%s' % \
-                                                      (random_string(),
-                                                       random_string())
+                                                      (random_string(length=6),
+                                                       random_string(length=6))
 else:
     kube_master = ctx.instance.relationships[0]._target.instance
-    ctx.instance.runtime_properties['master_private_ip'] = \
-        kube_master.runtime_properties.get('master_private_ip', '')
+    ctx.instance.runtime_properties['master_ip'] = \
+        kube_master.runtime_properties.get('master_ip', '')
     ctx.instance.runtime_properties['master_token'] = \
         kube_master.runtime_properties.get('master_token', '')
     ctx.instance.runtime_properties['script_id'] = \
@@ -88,7 +94,7 @@ if not is_configured:
                          ctx.instance.runtime_properties['master_token'])
     else:
         script_params = "-m '%s' -r 'node' -t '%s'" % \
-                        (ctx.instance.runtime_properties['master_private_ip'],
+                        (ctx.instance.runtime_properties['master_ip'],
                          ctx.instance.runtime_properties['master_token'])
 
     ctx.logger.info('Deploying Kubernetes on %s node...', kube_type.upper())

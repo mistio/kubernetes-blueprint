@@ -124,6 +124,11 @@ node_types:
         default: ''
     interfaces:
       cloudify.interfaces.lifecycle:
+        create:
+          implementation: mist.plugin.server.create
+          inputs:
+            node_type:
+              default: 'master'
         configure:
           implementation: tasks/install_kubernetes.py
           inputs:
@@ -168,6 +173,11 @@ node_types:
         type: cloudify.datatypes.mist.Config
     interfaces:
       cloudify.interfaces.lifecycle:
+        create:
+          implementation: mist.plugin.server.create
+          inputs:
+            node_type:
+              default: 'worker'
         configure:
           implementation: tasks/install_kubernetes.py
           inputs:
