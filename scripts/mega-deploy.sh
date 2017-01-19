@@ -1166,7 +1166,7 @@ mkdir -p /etc/kubernetes/auth
 echo "$AUTH_PASSWORD,$AUTH_USERNAME,1" > /etc/kubernetes/auth/basicauth.csv
 
 # Initialize kubeadm
-kubeadm init --token "$TOKEN" --api-port 443 || kubeadm init --token "$TOKEN" --api-port 443 --skip-preflight-checks
+kubeadm init --token "$TOKEN" --api-port 443 || rm -rf /var/lib/kubelet/* && kubeadm init --token "$TOKEN" --api-port 443
 
 # Wait for kube-apiserver to be up and running
 while true
@@ -1181,7 +1181,7 @@ done
 kubectl apply -f https://git.io/weave-kube
 
 # Deploy kubernetes dashboard
-kubectl create -f https://raw.githubusercontent.com/kubernetes/dashboard/v1.4.0/src/deploy/kubernetes-dashboard.yaml
+kubectl create -f https://raw.githubusercontent.com/kubernetes/dashboard/v1.5.1/src/deploy/kubernetes-dashboard.yaml
 
 # HACK:This is a hack to sed in place the kube-apiserver
 awk '/tokens/{print "          \"--basic-auth-file=/etc/kubernetes/auth/basicauth.csv\","}1' /etc/kubernetes/manifests/kube-apiserver.json > tmp && \
@@ -1190,7 +1190,7 @@ cp tmp /etc/kubernetes/manifests/kube-apiserver.json
 
 install_node_ubuntu_centos() {
 # Join cluster
-kubeadm join --api-port 443 --token $TOKEN $MASTER || kubeadm join --api-port 443 --token $TOKEN $MASTER --skip-preflight-checks
+kubeadm join --api-port 443 --token $TOKEN $MASTER || rm -rf /var/lib/kubelet/* && kubeadm join --api-port 443 --token $TOKEN $MASTER
 }
 
 
