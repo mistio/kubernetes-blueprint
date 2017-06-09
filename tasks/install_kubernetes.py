@@ -1,21 +1,15 @@
+import os
+import sys
+import glob
+import time
+import pkg_resources
+
+from plugin import connection
+from plugin.utils import random_string
+from plugin.constants import SCRIPT_TIMEOUT
+
 from cloudify import ctx
 from cloudify.exceptions import NonRecoverableError
-
-import sys
-import os
-import pkg_resources
-import glob
-
-from time import time, sleep
-
-from utils import random_string
-from constants import SCRIPT_TIMEOUT
-
-try:
-    import connection
-except ImportError:
-    sys.path.insert(0, 'lib/python2.7/site-packages/plugin/')  # TODO
-    import connection
 
 
 # FIXME
@@ -124,11 +118,11 @@ if not is_configured:
                 ctx.logger.error(_stdout)
                 raise NonRecoverableError('Installation of Kubernetes failed')
         else:
-            if time() > started_at + SCRIPT_TIMEOUT:
+            if time.time() > started_at + SCRIPT_TIMEOUT:
                 raise NonRecoverableError('Kubernetes installation script is '
                                           'taking too long. Giving up')
             ctx.logger.info('Waiting for Kubernetes installation to finish')
-            sleep(10)
+            time.sleep(10)
             job = client.get_job(job_id)
             continue
         break

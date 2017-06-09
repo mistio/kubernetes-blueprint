@@ -1,24 +1,16 @@
+import os
+import sys
+import glob
+import json
+import requests
+import pkg_resources
+
+from plugin import connection
+from plugin.utils import LocalStorage
+
 from cloudify.workflows import ctx as workctx
 from cloudify.workflows import parameters as inputs
 from cloudify.exceptions import NonRecoverableError
-
-import sys
-import os
-import pkg_resources
-import glob
-import requests
-import json
-
-from time import time, sleep
-
-from utils import LocalStorage
-
-
-try:
-    import connection
-except ImportError:
-    sys.path.insert(0, 'lib/python2.7/site-packages/plugin/')  # TODO
-    import connection
 
 # FIXME
 resource_package = __name__
