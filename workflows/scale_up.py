@@ -1,26 +1,20 @@
+import os
+import sys
+import json
+import glob
+import time
+import requests
+import pkg_resources
+
+from plugin import connection
+from plugin.utils import LocalStorage
+from plugin.utils import get_stack_name, generate_name, random_string
+from plugin.constants import CREATE_TIMEOUT, SCRIPT_TIMEOUT
+
 from cloudify.workflows import ctx as workctx
 from cloudify.workflows import parameters as inputs
 from cloudify.exceptions import NonRecoverableError
 
-import sys
-import os
-import requests
-import json
-import pkg_resources
-import glob
-
-from time import time, sleep
-
-from utils import LocalStorage
-from utils import get_stack_name, generate_name, random_string
-from constants import CREATE_TIMEOUT, SCRIPT_TIMEOUT
-
-
-try:
-    import connection
-except ImportError:
-    sys.path.insert(0, 'lib/python2.7/site-packages/plugin/')  # TODO
-    import connection
 
 # FIXME
 resource_package = __name__
@@ -97,14 +91,14 @@ def scale_cluster_up(quantity):
 
     job_id = job.json()['job_id']
     job = client.get_job(job_id)
-    started_at = time()
+    started_at = time.time()
 
     while True:
         err = job.get('error')
         if err:
             workctx.logger.error('An error occured during machine provisioning')
             raise NonRecoverableError(err)
-        elif time() > started_at + CREATE_TIMEOUT:
+        elif time.time() > started_at + CREATE_TIMEOUT:
             raise NonRecoverableError('Machine creation is taking too long! '
                                       'Backing away...')
         else:
@@ -119,7 +113,7 @@ def scale_cluster_up(quantity):
             else:
                 workctx.logger.info('Waiting for machine to become '
                                     'responsive...')
-                sleep(10)
+                time.sleep(10)
                 job = client.get_job(job_id)
                 continue
         break
@@ -160,13 +154,13 @@ def scale_cluster_up(quantity):
                     raise NonRecoverableError('Installation of Kubernetes '
                                               'failed')
             else:
-                if time() > started_at + SCRIPT_TIMEOUT:
+                if time.time() > started_at + SCRIPT_TIMEOUT:
                     raise NonRecoverableError('Kubernetes installation script '
                                               'is taking too long. Giving up')
 
                 workctx.logger.info('Waiting for Kubernetes installation to '
                                     'finish')
-                sleep(10)
+                time.sleep(10)
                 job = client.get_job(job_id)
                 continue
             break

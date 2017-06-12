@@ -1,17 +1,13 @@
+import os
+import sys
+import json
+from random import choice
+from string import digits, letters
+
+from plugin import connection  # FIXME
+
 from cloudify import ctx
 from cloudify.state import ctx_parameters as params
-
-import sys
-import os
-import json
-import string
-from random import choice
-
-try:
-    import connection  # FIXME
-except ImportError:
-    sys.path.insert(0, 'lib/python2.7/site-packages/plugin/')
-    import connection
 
 
 node_instance = {}
@@ -23,9 +19,9 @@ machine = client.other_machine(kwargs)
 
 node_instance['node_id'] = 'kube_worker'
 node_instance['name'] = 'kube_worker'
-node_instance['id'] = \
-    ('kube_worker_' + \
-     ''.join(choice(string.letters + string.digits) for _ in range(5))).lower()
+node_instance['id'] = (
+    'kube_worker_' + ''.join(choice(letters + digits) for _ in range(5))
+).lower()
 node_instance['host_id'] = node_instance['id']
 node_instance['version'] = 9  # TODO
 node_instance['state'] = 'started'
