@@ -52,9 +52,8 @@ if is_master:
     # Master node's IP address
     ctx.instance.runtime_properties['master_ip'] = master_ip
     # Token for secure Master-Worker communication
-    ctx.instance.runtime_properties['master_token'] = '%s.%s' % \
-                                                      (random_string(length=6),
-                                                       random_string(length=6))
+    master_token = '%s.%s' % (random_string(length=6), random_string(length=16))
+    ctx.instance.runtime_properties['master_token'] = master_token.lower()
 else:
     kube_master = ctx.instance.relationships[0]._target.instance
     ctx.instance.runtime_properties['master_ip'] = \
@@ -128,4 +127,3 @@ if not is_configured:
         break
 
     ctx.logger.info('Kubernetes %s installation succeeded', kube_type.upper())
-
