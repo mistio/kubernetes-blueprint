@@ -1112,15 +1112,26 @@ ubuntu_main() {
 # Install needed packages
 apt-get install -y apt-transport-https | echo "Error while installing apt-transport-https. Moving forward"
 apt-get update
-apt-get install -y curl apt-transport-https
-curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | apt-key add -
-cat <<EOF > /etc/apt/sources.list.d/kubernetes.list
+apt-get install -y curl apt-transport-https software-properties-common ca-certificates
+
+# Install docker
+curl -fsSL https://download.docker.com/linux/ubuntu/gpg | apt-key add -
+add-apt-repository \
+   "deb [arch=amd64] https://download.docker.com/linux/$(. /etc/os-release; echo "$ID") \
+   $(lsb_release -cs) \
+   stable"
+apt-get update && apt-get install -y docker-ce=$(apt-cache madison docker-ce | grep 17.09 | head -1 | awk '{print $3}')
+systemctl enable docker && systemctl start docker
+
+# Install kubeadm
+curl -s https://packages.cloud.google.com/apt/doc/apt-key.gpg | apt-key add -
+cat <<EOF >/etc/apt/sources.list.d/kubernetes.list
 deb http://apt.kubernetes.io/ kubernetes-xenial main
 EOF
 apt-get update
-apt-get install -y docker.io kubelet kubeadm kubectl kubernetes-cni curl
-systemctl enable docker && systemctl start docker
-systemctl enable kubelet && systemctl start kubelet
+apt-get install -y kubelet kubeadm kubectl
+systemctl enable kubelet
+
 if [ $ROLE = "master" ]; then
     install_master_ubuntu_centos
 elif [ $ROLE = "node" ]; then
@@ -1166,26 +1177,45 @@ mkdir -p /etc/kubernetes/auth
 echo "$AUTH_PASSWORD,$AUTH_USERNAME,1" > /etc/kubernetes/auth/basicauth.csv
 
 # Initialize kubeadm
-kubeadm init --token "$TOKEN" --api-port 443
+kubeadm init --token "$TOKEN" --apiserver-bind-port 443
+sysctl net.bridge.bridge-nf-call-iptables=1
 
 # Wait for kube-apiserver to be up and running
 while true
 do
-    if [ -n "$(curl --silent "http://localhost:8080")" ]; then
+    if [ -n "$(curl --silent "https://localhost:443")" ]; then
         break
     fi
     sleep 2
 done
 
 # Initialize pod network (weave)
-kubectl apply -f https://git.io/weave-kube
+kubever=$(kubectl --kubeconfig /etc/kubernetes/admin.conf version | base64 | tr -d '\n')
+kubectl --kubeconfig /etc/kubernetes/admin.conf apply -f "https://cloud.weave.works/k8s/net?k8s-version=$kubever"
 
 # Deploy kubernetes dashboard
-kubectl create -f https://raw.githubusercontent.com/kubernetes/dashboard/v1.5.1/src/deploy/kubernetes-dashboard.yaml
+kubectl --kubeconfig /etc/kubernetes/admin.conf apply -f https://raw.githubusercontent.com/kubernetes/dashboard/v1.8.0/src/deploy/recommended/kubernetes-dashboard.yaml
+cat <<EOF > /etc/kubernetes/dashboard-rbac.yml
+kind: ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1beta1
+metadata:
+  name: dashboard-admin
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: cluster-admin
+subjects:
+- kind: ServiceAccount
+  name: default
+  namespace: kube-system
+EOF
 
+kubectl --kubeconfig /etc/kubernetes/admin.conf apply -f /etc/kubernetes/dashboard-rbac.yml
+
+# kubectl --kubeconfig /etc/kubernetes/admin.conf create clusterrolebinding add-on-cluster-admin --clusterrole=cluster-admin --serviceaccount=kube-system:default
 # HACK:This is a hack to sed in place the kube-apiserver
-awk '/tokens/{print "          \"--basic-auth-file=/etc/kubernetes/auth/basicauth.csv\","}1' /etc/kubernetes/manifests/kube-apiserver.json > tmp && \
-cp tmp /etc/kubernetes/manifests/kube-apiserver.json
+# awk '/tokens/{print "          \"--basic-auth-file=/etc/kubernetes/auth/basicauth.csv\","}1' /etc/kubernetes/manifests/kube-apiserver.json > tmp && \
+# cp tmp /etc/kubernetes/manifests/kube-apiserver.json
 }
 
 install_node_ubuntu_centos() {
@@ -1232,9 +1262,9 @@ main () {
 ################################################################################
 
 
-# kubeadm init expects a token of <6chars>.<6chars>
-pass1=`date +%s | sha256sum | base64 | head -c 6 ; echo`
-pass2=`date +%s | sha256sum | base64 | head -c 6 ; echo`
+# kubeadm init expects a token of <6chars>.<16chars>
+pass1=`date +%s | sha256sum | head -c 6 ; echo`
+pass2=`date +%s | sha256sum | head -c 16 ; echo`
 pass="${pass1}.${pass2}"
 TOKEN=${TOKEN-$pass}
 
