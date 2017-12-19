@@ -1,7 +1,5 @@
 #!/bin/bash
 
-set -e
-
 while getopts "u:p:m:t:r:h:f:" OPTION
 do
     case $OPTION in
@@ -1165,6 +1163,8 @@ gpgkey=https://packages.cloud.google.com/yum/doc/yum-key.gpg https://packages.cl
 EOF
 
 setenforce 0
+sed -i --follow-symlinks 's/^SELINUX=.*/SELINUX=disabled/g' /etc/sysconfig/selinux
+
 cat <<EOF >  /etc/sysctl.d/k8s.conf
 net.bridge.bridge-nf-call-ip6tables = 1
 net.bridge.bridge-nf-call-iptables = 1
