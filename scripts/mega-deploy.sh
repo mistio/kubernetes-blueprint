@@ -1,5 +1,6 @@
 #!/bin/bash
 
+set -e
 while getopts "u:p:m:t:r:h:f:" OPTION
 do
     case $OPTION in
