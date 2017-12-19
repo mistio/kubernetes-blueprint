@@ -1112,7 +1112,11 @@ ubuntu_main() {
 # Install needed packages
 apt-get install -y apt-transport-https | echo "Error while installing apt-transport-https. Moving forward"
 apt-get update
-apt-get install -y curl apt-transport-https software-properties-common ca-certificates
+apt-get install -y curl apt-transport-https software-properties-common ca-certificates python-pip
+
+# To be used later on yaml parsing
+pip install --upgrade pip
+pip install pyyaml
 
 # Install docker
 curl -fsSL https://download.docker.com/linux/ubuntu/gpg | apt-key add -
@@ -1187,21 +1191,195 @@ kubeadm init --token "$TOKEN" --apiserver-bind-port 443
 sysctl net.bridge.bridge-nf-call-iptables=1
 
 # Wait for kube-apiserver to be up and running
-while true
-do
-    if [ -n "$(curl --silent "https://localhost:443")" ]; then
-        break
-    fi
-    sleep 2
+until $(curl --output /dev/null --silent --head --insecure https://localhost:443); do
+    printf '.'
+    sleep 5
 done
+
 
 # Initialize pod network (weave)
 kubever=$(kubectl --kubeconfig /etc/kubernetes/admin.conf version | base64 | tr -d '\n')
 kubectl --kubeconfig /etc/kubernetes/admin.conf apply -f "https://cloud.weave.works/k8s/net?k8s-version=$kubever"
 
+
+mkdir -p /var/lib/mist
+# Hack to enable basicauth
+cat <<EOF > /var/lib/mist/parser.py
+#!/usr/bin/env python
+import sys
+import yaml
+file = sys.argv[-1]
+with open(file, 'r') as f:
+    manifest = yaml.load(open(file, 'r'))
+manifest['spec']['containers'][0]['command'].append('--basic-auth-file=/etc/kubernetes/auth/basicauth.csv')
+auth_volume = {'hostPath': {'path': '/etc/kubernetes/auth', 'type': 'DirectoryOrCreate'},
+                'name': 'auth'}
+manifest['spec']['volumes'].append(auth_volume)
+auth_volume_mount = {'mountPath': '/etc/kubernetes/auth', 'name': 'auth', 'readOnly': True}
+manifest['spec']['containers'][0]['volumeMounts'].append(auth_volume_mount)
+with open(file, 'w') as outfile:
+    yaml.dump(manifest, outfile, default_flow_style=False)
+EOF
+
+python /var/lib/mist/parser.py /etc/kubernetes/manifests/kube-apiserver.yaml
+
+systemctl restart kubelet
+
+# Wait for kube-apiserver to be up and running
+until $(curl --output /dev/null --silent --head --insecure https://localhost:443); do
+    printf '.'
+    sleep 5
+done
+
+
+
 # Deploy kubernetes dashboard
-kubectl --kubeconfig /etc/kubernetes/admin.conf apply -f https://raw.githubusercontent.com/kubernetes/dashboard/v1.8.0/src/deploy/recommended/kubernetes-dashboard.yaml
-cat <<EOF > /etc/kubernetes/dashboard-rbac.yml
+cat <<EOF > /etc/kubernetes/kubernetes-dashboard.yaml
+# ------------------- Dashboard Secret ------------------- #
+
+apiVersion: v1
+kind: Secret
+metadata:
+  labels:
+    k8s-app: kubernetes-dashboard
+  name: kubernetes-dashboard-certs
+  namespace: kube-system
+type: Opaque
+
+---
+# ------------------- Dashboard Service Account ------------------- #
+
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  labels:
+    k8s-app: kubernetes-dashboard
+  name: kubernetes-dashboard
+  namespace: kube-system
+
+---
+# ------------------- Dashboard Role & Role Binding ------------------- #
+
+kind: Role
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: kubernetes-dashboard-minimal
+  namespace: kube-system
+rules:
+  # Allow Dashboard to create 'kubernetes-dashboard-key-holder' secret.
+- apiGroups: [""]
+  resources: ["secrets"]
+  verbs: ["create"]
+  # Allow Dashboard to get, update and delete Dashboard exclusive secrets.
+- apiGroups: [""]
+  resources: ["secrets"]
+  resourceNames: ["kubernetes-dashboard-key-holder", "kubernetes-dashboard-certs"]
+  verbs: ["get", "update", "delete"]
+  # Allow Dashboard to get and update 'kubernetes-dashboard-settings' config map.
+- apiGroups: [""]
+  resources: ["configmaps"]
+  resourceNames: ["kubernetes-dashboard-settings"]
+  verbs: ["get", "update"]
+  # Allow Dashboard to get metrics from heapster.
+- apiGroups: [""]
+  resources: ["services"]
+  resourceNames: ["heapster"]
+  verbs: ["proxy"]
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: kubernetes-dashboard-minimal
+  namespace: kube-system
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: kubernetes-dashboard-minimal
+subjects:
+- kind: ServiceAccount
+  name: kubernetes-dashboard
+  namespace: kube-system
+
+---
+# ------------------- Dashboard Deployment ------------------- #
+
+kind: Deployment
+apiVersion: apps/v1beta2
+metadata:
+  labels:
+    k8s-app: kubernetes-dashboard
+  name: kubernetes-dashboard
+  namespace: kube-system
+spec:
+  replicas: 1
+  revisionHistoryLimit: 10
+  selector:
+    matchLabels:
+      k8s-app: kubernetes-dashboard
+  template:
+    metadata:
+      labels:
+        k8s-app: kubernetes-dashboard
+    spec:
+      containers:
+      - name: kubernetes-dashboard
+        image: gcr.io/google_containers/kubernetes-dashboard-amd64:v1.8.1
+        ports:
+        - containerPort: 8443
+          protocol: TCP
+        args:
+          - --auto-generate-certificates
+          - --authentication-mode=basic
+          # Uncomment the following line to manually specify Kubernetes API server Host
+          # If not specified, Dashboard will attempt to auto discover the API server and connect
+          # to it. Uncomment only if the default does not work.
+          # - --apiserver-host=http://my-address:port
+        volumeMounts:
+        - name: kubernetes-dashboard-certs
+          mountPath: /certs
+          # Create on-disk volume to store exec logs
+        - mountPath: /tmp
+          name: tmp-volume
+        livenessProbe:
+          httpGet:
+            scheme: HTTPS
+            path: /
+            port: 8443
+          initialDelaySeconds: 30
+          timeoutSeconds: 30
+      volumes:
+      - name: kubernetes-dashboard-certs
+        secret:
+          secretName: kubernetes-dashboard-certs
+      - name: tmp-volume
+        emptyDir: {}
+      serviceAccountName: kubernetes-dashboard
+      # Comment the following tolerations if Dashboard must not be deployed on master
+      tolerations:
+      - key: node-role.kubernetes.io/master
+        effect: NoSchedule
+
+---
+# ------------------- Dashboard Service ------------------- #
+
+kind: Service
+apiVersion: v1
+metadata:
+  labels:
+    k8s-app: kubernetes-dashboard
+  name: kubernetes-dashboard
+  namespace: kube-system
+spec:
+  ports:
+    - port: 443
+      targetPort: 8443
+  selector:
+    k8s-app: kubernetes-dashboard
+EOF
+kubectl --kubeconfig /etc/kubernetes/admin.conf apply -f /etc/kubernetes/kubernetes-dashboard.yaml
+
+cat <<EOF > /etc/kubernetes/dashboard-rbac.yaml
 kind: ClusterRoleBinding
 apiVersion: rbac.authorization.k8s.io/v1beta1
 metadata:
@@ -1215,18 +1393,32 @@ subjects:
   name: default
   namespace: kube-system
 EOF
+kubectl --kubeconfig /etc/kubernetes/admin.conf apply -f /etc/kubernetes/dashboard-rbac.yaml
 
-kubectl --kubeconfig /etc/kubernetes/admin.conf apply -f /etc/kubernetes/dashboard-rbac.yml
 
-# kubectl --kubeconfig /etc/kubernetes/admin.conf create clusterrolebinding add-on-cluster-admin --clusterrole=cluster-admin --serviceaccount=kube-system:default
-# HACK:This is a hack to sed in place the kube-apiserver
-# awk '/tokens/{print "          \"--basic-auth-file=/etc/kubernetes/auth/basicauth.csv\","}1' /etc/kubernetes/manifests/kube-apiserver.json > tmp && \
-# cp tmp /etc/kubernetes/manifests/kube-apiserver.json
+cat <<EOF > /etc/kubernetes/admin-rbac.yaml
+kind: ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: admin-user-global
+subjects:
+- kind: User
+  name: $AUTH_USERNAME
+  apiGroup: rbac.authorization.k8s.io
+roleRef:
+  kind: ClusterRole
+  name: cluster-admin
+  apiGroup: rbac.authorization.k8s.io
+EOF
+kubectl --kubeconfig /etc/kubernetes/admin.conf apply -f /etc/kubernetes/admin-rbac.yaml
+
+kubectl --kubeconfig /etc/kubernetes/admin.conf get deployment kubernetes-dashboard --namespace=kube-system -o yaml > /etc/kubernetes/kubernetes-dashboard.yaml
+
 }
 
 install_node_ubuntu_centos() {
 # Join cluster
-kubeadm join --api-port 443 --token $TOKEN $MASTER
+kubeadm join --discovery-token-unsafe-skip-ca-verification --token $TOKEN $MASTER:443
 }
 
 
