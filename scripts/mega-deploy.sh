@@ -1133,7 +1133,9 @@ cat <<EOF >/etc/apt/sources.list.d/kubernetes.list
 deb http://apt.kubernetes.io/ kubernetes-xenial main
 EOF
 apt-get update
-apt-get install -y kubelet kubeadm kubectl
+apt-get install -y kubelet=$(apt-cache madison kubelet | grep 1.9.0 | head -1| awk '{print $3}') \
+                   kubeadm=$(apt-cache madison kubeadm | grep 1.9.0 | head -1| awk '{print $3}') \
+                   kubectl=$(apt-cache madison kubectl | grep 1.9.0 | head -1| awk '{print $3}')
 systemctl enable kubelet
 
 if [ $ROLE = "master" ]; then
