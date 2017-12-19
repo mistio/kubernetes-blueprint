@@ -341,7 +341,11 @@ outputs:
   dashboard:
     description: Kubernetes dashboard URL
     value:
-      url: { concat: [ 'https://', { get_attribute: [ kube_master, ip ] },
-                       '/api/v1/proxy/namespaces/kube-system/services/kubernetes-dashboard' ] }
+      command: { concat: [ 'kubectl --insecure-skip-tls-verify
+                           --server="https://', { get_attribute: [ kube_master, ip ] },
+                           '" --username="', { get_attribute: [ kube_master, auth_user ] },
+                           '" --password="', { get_attribute: [ kube_master, auth_pass ] },
+                           '" proxy' ] }
+      url: http://localhost:8001/ui
       username: { get_attribute: [ kube_master, auth_user ] }
       password: { get_attribute: [ kube_master, auth_pass ] }

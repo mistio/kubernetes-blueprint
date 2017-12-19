@@ -1171,7 +1171,15 @@ net.bridge.bridge-nf-call-iptables = 1
 EOF
 sysctl --system
 
-yum install -y docker kubelet kubeadm kubectl
+yum install -y docker kubelet-$(yum list available kubelet --showduplicates | grep 1.9.0 | head -1 | awk '{print $2}') \
+                      kubeadm-$(yum list available kubeadm --showduplicates | grep 1.9.0 | head -1 | awk '{print $2}') \
+                      kubectl-$(yum list available kubectl --showduplicates | grep 1.9.0 | head -1 | awk '{print $2}') \
+                      python-pip
+
+# To be used later on yaml parsing
+pip install --upgrade pip
+pip install pyyaml
+
 systemctl enable docker && systemctl start docker
 systemctl enable kubelet && systemctl start kubelet
 
@@ -1414,8 +1422,6 @@ roleRef:
 EOF
 kubectl --kubeconfig /etc/kubernetes/admin.conf apply -f /etc/kubernetes/admin-rbac.yaml
 
-kubectl --kubeconfig /etc/kubernetes/admin.conf get deployment kubernetes-dashboard --namespace=kube-system -o yaml > /etc/kubernetes/kubernetes-dashboard.yaml
-
 }
 
 install_node_ubuntu_centos() {
@@ -1439,6 +1445,10 @@ if [[ $VERSION =~ .*Ubuntu* ]]
 then
    echo "Found Ubuntu distro"
    DISTRO="Ubuntu"
+elif [[ $VERSION =~ .*Debian* ]]
+then
+   echo "Found Debian distro"
+   DISTRO="Debian"
 elif [[ $VERSION =~ .*CentOS* ]]
 then
    echo "Found CentOS distro"
@@ -1481,7 +1491,7 @@ fi
 
 find_distro
 
-if [ $DISTRO = "Ubuntu" ];then
+if [ $DISTRO = "Ubuntu" ] || [ $DISTRO = "Debian" ];then
     ubuntu_main
 elif [ $DISTRO = "CentOS" ];then
     centos_main
