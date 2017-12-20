@@ -1,7 +1,6 @@
 #!/bin/bash
 
 set -e
-
 while getopts "u:p:m:t:r:h:f:" OPTION
 do
     case $OPTION in
@@ -1112,15 +1111,32 @@ ubuntu_main() {
 # Install needed packages
 apt-get install -y apt-transport-https | echo "Error while installing apt-transport-https. Moving forward"
 apt-get update
-apt-get install -y curl apt-transport-https
-curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | apt-key add -
-cat <<EOF > /etc/apt/sources.list.d/kubernetes.list
+apt-get install -y curl apt-transport-https software-properties-common ca-certificates python-pip
+
+# To be used later on yaml parsing
+pip install --upgrade pip
+pip install pyyaml
+
+# Install docker
+curl -fsSL https://download.docker.com/linux/ubuntu/gpg | apt-key add -
+add-apt-repository \
+   "deb [arch=amd64] https://download.docker.com/linux/$(. /etc/os-release; echo "$ID") \
+   $(lsb_release -cs) \
+   stable"
+apt-get update && apt-get install -y docker-ce=$(apt-cache madison docker-ce | grep 17.09 | head -1 | awk '{print $3}')
+systemctl enable docker && systemctl start docker
+
+# Install kubeadm
+curl -s https://packages.cloud.google.com/apt/doc/apt-key.gpg | apt-key add -
+cat <<EOF >/etc/apt/sources.list.d/kubernetes.list
 deb http://apt.kubernetes.io/ kubernetes-xenial main
 EOF
 apt-get update
-apt-get install -y docker.io kubelet kubeadm kubectl kubernetes-cni curl
-systemctl enable docker && systemctl start docker
-systemctl enable kubelet && systemctl start kubelet
+apt-get install -y kubelet=$(apt-cache madison kubelet | grep 1.9.0 | head -1| awk '{print $3}') \
+                   kubeadm=$(apt-cache madison kubeadm | grep 1.9.0 | head -1| awk '{print $3}') \
+                   kubectl=$(apt-cache madison kubectl | grep 1.9.0 | head -1| awk '{print $3}')
+systemctl enable kubelet
+
 if [ $ROLE = "master" ]; then
     install_master_ubuntu_centos
 elif [ $ROLE = "node" ]; then
@@ -1140,18 +1156,34 @@ centos_main() {
 cat <<EOF > /etc/yum.repos.d/kubernetes.repo
 [kubernetes]
 name=Kubernetes
-baseurl=http://yum.kubernetes.io/repos/kubernetes-el7-x86_64
+baseurl=https://packages.cloud.google.com/yum/repos/kubernetes-el7-x86_64
 enabled=1
 gpgcheck=1
 repo_gpgcheck=1
-gpgkey=https://packages.cloud.google.com/yum/doc/yum-key.gpg
-       https://packages.cloud.google.com/yum/doc/rpm-package-key.gpg
+gpgkey=https://packages.cloud.google.com/yum/doc/yum-key.gpg https://packages.cloud.google.com/yum/doc/rpm-package-key.gpg
 EOF
 
 setenforce 0
-yum install -y docker kubelet kubeadm kubectl kubernetes-cni curl
+sed -i --follow-symlinks 's/^SELINUX=.*/SELINUX=disabled/g' /etc/sysconfig/selinux
+
+cat <<EOF >  /etc/sysctl.d/k8s.conf
+net.bridge.bridge-nf-call-ip6tables = 1
+net.bridge.bridge-nf-call-iptables = 1
+EOF
+sysctl --system
+
+yum install -y docker kubelet-$(yum list available kubelet --showduplicates | grep 1.9.0 | head -1 | awk '{print $2}') \
+                      kubeadm-$(yum list available kubeadm --showduplicates | grep 1.9.0 | head -1 | awk '{print $2}') \
+                      kubectl-$(yum list available kubectl --showduplicates | grep 1.9.0 | head -1 | awk '{print $2}') \
+                      python-pip
+
+# To be used later on yaml parsing
+pip install --upgrade pip
+pip install pyyaml
+
 systemctl enable docker && systemctl start docker
 systemctl enable kubelet && systemctl start kubelet
+
 
 if [ $ROLE = "master" ]; then
     install_master_ubuntu_centos
@@ -1166,31 +1198,236 @@ mkdir -p /etc/kubernetes/auth
 echo "$AUTH_PASSWORD,$AUTH_USERNAME,1" > /etc/kubernetes/auth/basicauth.csv
 
 # Initialize kubeadm
-kubeadm init --token "$TOKEN" --api-port 443
+kubeadm init --token "$TOKEN" --apiserver-bind-port 443
+sysctl net.bridge.bridge-nf-call-iptables=1
 
 # Wait for kube-apiserver to be up and running
-while true
-do
-    if [ -n "$(curl --silent "http://localhost:8080")" ]; then
-        break
-    fi
-    sleep 2
+until $(curl --output /dev/null --silent --head --insecure https://localhost:443); do
+    printf '.'
+    sleep 5
 done
 
+
 # Initialize pod network (weave)
-kubectl apply -f https://git.io/weave-kube
+kubever=$(kubectl --kubeconfig /etc/kubernetes/admin.conf version | base64 | tr -d '\n')
+kubectl --kubeconfig /etc/kubernetes/admin.conf apply -f "https://cloud.weave.works/k8s/net?k8s-version=$kubever"
+
+
+mkdir -p /var/lib/mist
+# Hack to enable basicauth
+cat <<EOF > /var/lib/mist/parser.py
+#!/usr/bin/env python
+import sys
+import yaml
+file = sys.argv[-1]
+with open(file, 'r') as f:
+    manifest = yaml.load(open(file, 'r'))
+manifest['spec']['containers'][0]['command'].append('--basic-auth-file=/etc/kubernetes/auth/basicauth.csv')
+auth_volume = {'hostPath': {'path': '/etc/kubernetes/auth', 'type': 'DirectoryOrCreate'},
+                'name': 'auth'}
+manifest['spec']['volumes'].append(auth_volume)
+auth_volume_mount = {'mountPath': '/etc/kubernetes/auth', 'name': 'auth', 'readOnly': True}
+manifest['spec']['containers'][0]['volumeMounts'].append(auth_volume_mount)
+with open(file, 'w') as outfile:
+    yaml.dump(manifest, outfile, default_flow_style=False)
+EOF
+
+python /var/lib/mist/parser.py /etc/kubernetes/manifests/kube-apiserver.yaml
+
+systemctl restart kubelet
+
+# Wait for kube-apiserver to be up and running
+until $(curl --output /dev/null --silent --head --insecure https://localhost:443); do
+    printf '.'
+    sleep 5
+done
+
+
 
 # Deploy kubernetes dashboard
-kubectl create -f https://raw.githubusercontent.com/kubernetes/dashboard/v1.5.1/src/deploy/kubernetes-dashboard.yaml
+cat <<EOF > /etc/kubernetes/kubernetes-dashboard.yaml
+# ------------------- Dashboard Secret ------------------- #
 
-# HACK:This is a hack to sed in place the kube-apiserver
-awk '/tokens/{print "          \"--basic-auth-file=/etc/kubernetes/auth/basicauth.csv\","}1' /etc/kubernetes/manifests/kube-apiserver.json > tmp && \
-cp tmp /etc/kubernetes/manifests/kube-apiserver.json
+apiVersion: v1
+kind: Secret
+metadata:
+  labels:
+    k8s-app: kubernetes-dashboard
+  name: kubernetes-dashboard-certs
+  namespace: kube-system
+type: Opaque
+
+---
+# ------------------- Dashboard Service Account ------------------- #
+
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  labels:
+    k8s-app: kubernetes-dashboard
+  name: kubernetes-dashboard
+  namespace: kube-system
+
+---
+# ------------------- Dashboard Role & Role Binding ------------------- #
+
+kind: Role
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: kubernetes-dashboard-minimal
+  namespace: kube-system
+rules:
+  # Allow Dashboard to create 'kubernetes-dashboard-key-holder' secret.
+- apiGroups: [""]
+  resources: ["secrets"]
+  verbs: ["create"]
+  # Allow Dashboard to get, update and delete Dashboard exclusive secrets.
+- apiGroups: [""]
+  resources: ["secrets"]
+  resourceNames: ["kubernetes-dashboard-key-holder", "kubernetes-dashboard-certs"]
+  verbs: ["get", "update", "delete"]
+  # Allow Dashboard to get and update 'kubernetes-dashboard-settings' config map.
+- apiGroups: [""]
+  resources: ["configmaps"]
+  resourceNames: ["kubernetes-dashboard-settings"]
+  verbs: ["get", "update"]
+  # Allow Dashboard to get metrics from heapster.
+- apiGroups: [""]
+  resources: ["services"]
+  resourceNames: ["heapster"]
+  verbs: ["proxy"]
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: kubernetes-dashboard-minimal
+  namespace: kube-system
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: kubernetes-dashboard-minimal
+subjects:
+- kind: ServiceAccount
+  name: kubernetes-dashboard
+  namespace: kube-system
+
+---
+# ------------------- Dashboard Deployment ------------------- #
+
+kind: Deployment
+apiVersion: apps/v1beta2
+metadata:
+  labels:
+    k8s-app: kubernetes-dashboard
+  name: kubernetes-dashboard
+  namespace: kube-system
+spec:
+  replicas: 1
+  revisionHistoryLimit: 10
+  selector:
+    matchLabels:
+      k8s-app: kubernetes-dashboard
+  template:
+    metadata:
+      labels:
+        k8s-app: kubernetes-dashboard
+    spec:
+      containers:
+      - name: kubernetes-dashboard
+        image: gcr.io/google_containers/kubernetes-dashboard-amd64:v1.8.1
+        ports:
+        - containerPort: 8443
+          protocol: TCP
+        args:
+          - --auto-generate-certificates
+          - --authentication-mode=basic
+          # Uncomment the following line to manually specify Kubernetes API server Host
+          # If not specified, Dashboard will attempt to auto discover the API server and connect
+          # to it. Uncomment only if the default does not work.
+          # - --apiserver-host=http://my-address:port
+        volumeMounts:
+        - name: kubernetes-dashboard-certs
+          mountPath: /certs
+          # Create on-disk volume to store exec logs
+        - mountPath: /tmp
+          name: tmp-volume
+        livenessProbe:
+          httpGet:
+            scheme: HTTPS
+            path: /
+            port: 8443
+          initialDelaySeconds: 30
+          timeoutSeconds: 30
+      volumes:
+      - name: kubernetes-dashboard-certs
+        secret:
+          secretName: kubernetes-dashboard-certs
+      - name: tmp-volume
+        emptyDir: {}
+      serviceAccountName: kubernetes-dashboard
+      # Comment the following tolerations if Dashboard must not be deployed on master
+      tolerations:
+      - key: node-role.kubernetes.io/master
+        effect: NoSchedule
+
+---
+# ------------------- Dashboard Service ------------------- #
+
+kind: Service
+apiVersion: v1
+metadata:
+  labels:
+    k8s-app: kubernetes-dashboard
+  name: kubernetes-dashboard
+  namespace: kube-system
+spec:
+  ports:
+    - port: 443
+      targetPort: 8443
+  selector:
+    k8s-app: kubernetes-dashboard
+EOF
+kubectl --kubeconfig /etc/kubernetes/admin.conf apply -f /etc/kubernetes/kubernetes-dashboard.yaml
+
+cat <<EOF > /etc/kubernetes/dashboard-rbac.yaml
+kind: ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1beta1
+metadata:
+  name: dashboard-admin
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: cluster-admin
+subjects:
+- kind: ServiceAccount
+  name: default
+  namespace: kube-system
+EOF
+kubectl --kubeconfig /etc/kubernetes/admin.conf apply -f /etc/kubernetes/dashboard-rbac.yaml
+
+
+cat <<EOF > /etc/kubernetes/admin-rbac.yaml
+kind: ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: admin-user-global
+subjects:
+- kind: User
+  name: $AUTH_USERNAME
+  apiGroup: rbac.authorization.k8s.io
+roleRef:
+  kind: ClusterRole
+  name: cluster-admin
+  apiGroup: rbac.authorization.k8s.io
+EOF
+kubectl --kubeconfig /etc/kubernetes/admin.conf apply -f /etc/kubernetes/admin-rbac.yaml
+
 }
 
 install_node_ubuntu_centos() {
 # Join cluster
-kubeadm join --api-port 443 --token $TOKEN $MASTER
+kubeadm join --discovery-token-unsafe-skip-ca-verification --token $TOKEN $MASTER:443
 }
 
 
@@ -1209,6 +1446,10 @@ if [[ $VERSION =~ .*Ubuntu* ]]
 then
    echo "Found Ubuntu distro"
    DISTRO="Ubuntu"
+elif [[ $VERSION =~ .*Debian* ]]
+then
+   echo "Found Debian distro"
+   DISTRO="Debian"
 elif [[ $VERSION =~ .*CentOS* ]]
 then
    echo "Found CentOS distro"
@@ -1232,9 +1473,9 @@ main () {
 ################################################################################
 
 
-# kubeadm init expects a token of <6chars>.<6chars>
-pass1=`date +%s | sha256sum | base64 | head -c 6 ; echo`
-pass2=`date +%s | sha256sum | base64 | head -c 6 ; echo`
+# kubeadm init expects a token of <6chars>.<16chars>
+pass1=`date +%s | sha256sum | head -c 6 ; echo`
+pass2=`date +%s | sha256sum | head -c 16 ; echo`
 pass="${pass1}.${pass2}"
 TOKEN=${TOKEN-$pass}
 
@@ -1251,7 +1492,7 @@ fi
 
 find_distro
 
-if [ $DISTRO = "Ubuntu" ];then
+if [ $DISTRO = "Ubuntu" ] || [ $DISTRO = "Debian" ];then
     ubuntu_main
 elif [ $DISTRO = "CentOS" ];then
     centos_main
