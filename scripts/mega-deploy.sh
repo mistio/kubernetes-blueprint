@@ -31,6 +31,10 @@ do
     esac
 done
 
+if [ -e /etc/mist.env ]; then
+    source /etc/mist.env
+fi
+
 coreos_main() {
 ################################################################################
 #

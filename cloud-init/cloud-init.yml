@@ -1,9 +1,5 @@
-package_update: false
-packages:
- - curl
- - wget
-
+#cloud-config
 runcmd:
- - curl -o mega-deploy.sh https://raw.githubusercontent.com/mistio/kubernetes-blueprint/master/scripts/mega-deploy.sh
+ - curl -o mega-deploy.sh https://raw.githubusercontent.com/mistio/kubernetes-blueprint/cloud_init/scripts/mega-deploy.sh
  - chmod +x mega-deploy.sh
  - ./mega-deploy.sh
