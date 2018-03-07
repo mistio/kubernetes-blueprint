@@ -129,8 +129,21 @@ node_types:
           inputs:
             node_type:
               default: 'master'
+            cloud_init: |
+              #cloud-config
+              runcmd:
+               - curl -o mega-deploy.sh https://raw.githubusercontent.com/mistio/kubernetes-blueprint/cloud_init/scripts/mega-deploy.sh
+               - chmod +x mega-deploy.sh
+               - ./mega-deploy.sh
+               - curl -X POST %(callback_url)s
+            env_vars: |
+              ROLE=%(role)s
+              USERNAME=%(username)s
+              PASSWORD=%(password)s
+              TOKEN=%(token)s
+              MASTER=%(master)s
         configure:
-          implementation: tasks/install_kubernetes.py
+          implementation: tasks/install_kubernetes
           inputs:
             start_retry_interval:
               description: Polling interval until the server is active (in seconds)

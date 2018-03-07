@@ -35,6 +35,10 @@ except IOError:
 client = connection.MistConnectionClient().client
 machine = connection.MistConnectionClient().machine
 
+if machine.cloud.provider == 'libvirt':
+    print 'LIBVIRT'
+    sys.exit(0)
+
 is_configured = ctx.node.properties['configured']
 is_master = ctx.node.properties['master']
 kube_type = 'master' if is_master else 'worker'
