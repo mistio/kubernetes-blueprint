@@ -202,7 +202,7 @@ node_templates:
         image_id: { get_input: mist_image_1 }
         size_id: { get_input: mist_size_1 }
         location_id: { get_input: mist_location_1 }
-        networks: { get_input: mist_networks_1 }
+        networks: { get_input: mist_networks }
         key: { get_input: mist_key_master }
       mist_config:
         mist_token: { get_input: mist_token }
@@ -223,7 +223,7 @@ node_templates:
         image_id: { get_input: mist_image_1 }
         size_id: { get_input: mist_size_1 }
         location_id: { get_input: mist_location_1 }
-        networks: { get_input: mist_networks_1 }
+        networks: { get_input: mist_networks }
         key: { get_input: mist_key_worker }
       mist_config:
         mist_token: { get_input: mist_token }
