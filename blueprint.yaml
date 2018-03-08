@@ -11,7 +11,7 @@ tosca_definitions_version: cloudify_dsl_1_2
 
 imports:
   - http://www.getcloudify.org/spec/cloudify/3.3m5/types.yaml
-  - http://raw.githubusercontent.com/mistio/cloudify-mist-plugin/master/plugin.yaml
+  - http://raw.githubusercontent.com/mistio/cloudify-mist-plugin/kvm_template/plugin.yaml
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # Inputs section
