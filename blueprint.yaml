@@ -145,7 +145,7 @@ node_types:
                 TOKEN=%(token)s
                 MASTER=%(master)s
         configure:
-          implementation: tasks/install_kubernetes
+          implementation: tasks/install_kubernetes.py
           inputs:
             start_retry_interval:
               description: Polling interval until the server is active (in seconds)
