@@ -76,7 +76,7 @@ inputs:
     type: string
     default: ''
   libvirt_disk_path:
-    type: String
+    type: string
     default: ''
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
