@@ -1,12 +1,12 @@
 import os
 import time
 
+from cloudify import ctx
+from cloudify.exceptions import NonRecoverableError
+
 from plugin.utils import random_string
 from plugin.constants import SCRIPT_TIMEOUT
 from plugin.connection import MistConnectionClient
-
-from cloudify import ctx
-from cloudify.exceptions import NonRecoverableError
 
 
 def prepare_kubernetes_script():
@@ -34,13 +34,15 @@ def prepare_kubernetes_script():
         # configured, load the script from file, upload it to mist.io, and
         # run it over ssh. TODO KVM
         client = MistConnectionClient().client
-        script_path = os.path.join(__file__, '../scripts/mega-deploy.sh')
-        script_name = 'install_kubernetes_%s' % random_string(length=4)
-        with open(os.path.abspath(script_path)) as fobj:
+        script = os.path.join(os.path.dirname(__file__), 'mega-deploy.sh')
+        ctx.download_resource(
+            os.path.join('scripts', 'mega-deploy.sh'), script
+        )
+        with open(os.path.abspath(script)) as fobj:
             script = fobj.read()
         script = client.add_script(
-            name=script_name, script=script,
-            location_type='inline', exec_type='executable'
+            name='install_kubernetes_%s' % random_string(length=4),
+            script=script, location_type='inline', exec_type='executable'
         )
         ctx.instance.runtime_properties['script_id'] = script['id']
 
@@ -48,8 +50,9 @@ def prepare_kubernetes_script():
 def configure_kubernetes_master():
     """Configure the kubernetes master.
 
-    Sets the necessary runtime properties, which are required by worker
-    nodes in order to join the kubernetes cluster.
+    Sets up the master node and stores the necessary settings inside the node
+    instance's runtime properties, which are required by worker nodes in order
+    to join the kubernetes cluster.
 
     """
     ctx.logger.info('Setting up kubernetes master node')
@@ -59,7 +62,7 @@ def configure_kubernetes_master():
     client = MistConnectionClient().client
     machine = MistConnectionClient().machine
 
-    # Filter out IPv6 addresses. NOTE that we prefer to use private IPs.
+    # Filter out IPv6 addresses. NOTE We prefer to use private IPs.
     ips = machine.info['private_ips'] + machine.info['public_ips']
     ips = filter(lambda ip: ':' not in ip, ips)
     if not ips:
@@ -99,11 +102,9 @@ def configure_kubernetes_master():
 def configure_kubernetes_worker():
     """Configure a new kubernetes node.
 
-    Sets the necessary runtime properties, which are required by worker
-    nodes in order to join the kubernetes cluster.
+    Configures a new worker node and connects it to the kubernetes master.
 
     """
-
     ctx.logger.info('Setting up kubernetes worker')
     prepare_kubernetes_script()
 
@@ -137,20 +138,33 @@ def configure_kubernetes_worker():
 
 
 def wait_for_configuration():
-    """"""
+    """Wait for the current node instance's configuration to finish.
+
+    This method enters a loop, while waiting for the current node
+    instance's configuration to complete.
+
+    This method polls the workflow's logs by communicating with the
+    mist.io API in order to decide whether the script configuring
+    each kubernetes node has finished.
+
+    This method will either exit with an exit code 0 if the current
+    node's configuration completed successfully, or it will raise a
+    non-recoverable exception.
+
+    """
     ctx.logger.info('Waiting for Kubernetes installation to finish')
 
     # FIXME Re-think this.
     client = MistConnectionClient().client
     machine = MistConnectionClient().machine
 
-    #
+    # Mark the beginning of the polling period.
     started_at = time.time()
 
     while True:
         time.sleep(10)
         if time.time() > started_at + SCRIPT_TIMEOUT:
-            raise NonRecoverableError('Installation failed to complete after %s', SCRIPT_TIMEOUT)
+            raise NonRecoverableError('Time threshold exceeded!')
         try:
             job = client.get_job(ctx.instance.runtime_properties['job_id'])
         except KeyError:
@@ -164,7 +178,7 @@ def wait_for_configuration():
                 msg = log.get('stdout', '')
                 msg += log.get('extra_output', '')
                 ctx.logger.error(msg or log['error'])
-                raise NonRecoverableError('Installation of Kubernetes failed')
+                raise NonRecoverableError('Installation of kubernetes failed')
             break
         else:
             continue
@@ -172,7 +186,7 @@ def wait_for_configuration():
 
 
 if __name__ == '__main__':
-    """"""
+    """Setup kubernetes on the machines defined by the blueprint."""
     if not ctx.node.properties['configured']:
         if not ctx.node.properties['master']:
             configure_kubernetes_worker()
