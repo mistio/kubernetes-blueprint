@@ -10,7 +10,21 @@ from cloudify.exceptions import NonRecoverableError
 
 
 def prepare_kubernetes_script():
-    """Upload kubernetes installation script, if missing."""
+    """Upload kubernetes installation script, if missing.
+
+    This method is executed at the very beginning, in a pre-configuration
+    phase, to make sure that the kubernetes installation script has been
+    uploaded to mist.io.
+
+    This method is meant to be invoked early on by:
+
+        configure_kubernetes_master()
+        configure_kubernetes_worker()
+
+    The script_id inside each instance's runtime properties is used later
+    on in order to configure kubernetes on the provisioned machines.
+
+    """
     if ctx.instance.runtime_properties.get('script_id'):
         ctx.logger.info('Kubernetes installation script already exists')
     else:
@@ -32,7 +46,12 @@ def prepare_kubernetes_script():
 
 
 def configure_kubernetes_master():
-    """"""
+    """Configure the kubernetes master.
+
+    Sets the necessary runtime properties, which are required by worker
+    nodes in order to join the kubernetes cluster.
+
+    """
     ctx.logger.info('Setting up kubernetes master node')
     prepare_kubernetes_script()
 
@@ -60,12 +79,8 @@ def configure_kubernetes_master():
     })
 
     ctx.logger.info('Installing kubernetes on master node')
-    # install_kubernetes_on_node()
 
     # Prepare script parameters.
-    # cloud_id = ctx.node.properties['parameters']['cloud_id']
-    # script_id = ctx.instance.runtime_properties['script_id']
-    # machine_id = ctx.instance.runtime_properties['machine_id']
     script_params = "-u '%s' " % ctx.instance.runtime_properties['auth_user']
     script_params += "-p '%s' " % ctx.instance.runtime_properties['auth_pass']
     script_params += "-t '%s' " % ctx.instance.runtime_properties['master_token']  # NOQA
@@ -82,7 +97,13 @@ def configure_kubernetes_master():
 
 
 def configure_kubernetes_worker():
-    """"""
+    """Configure a new kubernetes node.
+
+    Sets the necessary runtime properties, which are required by worker
+    nodes in order to join the kubernetes cluster.
+
+    """
+
     ctx.logger.info('Setting up kubernetes worker')
     prepare_kubernetes_script()
 
@@ -95,36 +116,12 @@ def configure_kubernetes_worker():
     ctx.instance.runtime_properties.update({
         'script_id': master.runtime_properties.get('script_id', ''),
         'master_ip': master.runtime_properties.get('master_ip', ''),
-        'master_token': master.runtime_properties.get('master_ip', ''),
+        'master_token': master.runtime_properties.get('master_token', ''),
     })
 
     ctx.logger.info('Configuring kubernetes node')
-    # install_kubernetes_on_node()
 
     # Prepare script parameters.
-    # cloud_id = ctx.node.properties['parameters']['cloud_id']
-    # script_id = ctx.instance.runtime_properties['script_id']
-    # machine_id = ctx.instance.runtime_properties['machine_id']
-    script_params = "-m '%s' " % ctx.instance.runtime_properties['master_ip']
-    script_params += "-t '%s' " % ctx.instance.runtime_properties['master_token']  # NOQA
-    script_params += "-r 'node'"
-
-    # Run the script.
-    script = client.run_script(
-        script_id=ctx.instance.runtime_properties['script_id'], su=True,
-        machine_id=machine.id,
-        cloud_id=machine.cloud.id,
-        script_params=script_params,
-    )
-    ctx.instance.runtime_properties['job_id'] = script['job_id']
-
-
-def install_kubernetes_on_node():
-    """"""
-    # Prepare script parameters.
-    # cloud_id = ctx.node.properties['parameters']['cloud_id']
-    # script_id = ctx.instance.runtime_properties['script_id']
-    # machine_id = ctx.instance.runtime_properties['machine_id']
     script_params = "-m '%s' " % ctx.instance.runtime_properties['master_ip']
     script_params += "-t '%s' " % ctx.instance.runtime_properties['master_token']  # NOQA
     script_params += "-r 'node'"
@@ -153,9 +150,12 @@ def wait_for_configuration():
     while True:
         time.sleep(10)
         if time.time() > started_at + SCRIPT_TIMEOUT:
-            raise NonRecoverableError('Kubernetes installation script is taking too long. Giving up')
-        for log in client.get_job(ctx.instance.runtime_properties['job_id'])['logs']:
-            ctx.logger.error('$$$$$$$$$$$$ %s', log)
+            raise NonRecoverableError('Installation failed to complete after %s', SCRIPT_TIMEOUT)
+        try:
+            job = client.get_job(ctx.instance.runtime_properties['job_id'])
+        except KeyError:
+            raise NonRecoverableError('Failed to fetch installation logs')
+        for log in job['logs']:
             if log.get('action') != 'script_finished':
                 continue
             if log.get('machine_id') != machine.id:
