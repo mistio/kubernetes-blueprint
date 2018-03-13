@@ -75,9 +75,6 @@ inputs:
     description: The password used for accessing the Kubernetes dashboard. If left blank, the password will be auto-generated
     type: string
     default: ''
-  libvirt_disk_path:
-    type: string
-    default: ''
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # Declaration of Kubernetes node_types
@@ -222,7 +219,6 @@ node_templates:
         location_id: { get_input: mist_location_1 }
         networks: { get_input: networks }
         key: { get_input: mist_key_master }
-        libvirt_disk_path: { get_input: libvirt_disk_path }
       mist_config:
         mist_token: { get_input: mist_token }
         mist_username: { get_input: mist_username }
@@ -244,7 +240,6 @@ node_templates:
         location_id: { get_input: mist_location_1 }
         networks: { get_input: networks }
         key: { get_input: mist_key_worker }
-        libvirt_disk_path: { get_input: libvirt_disk_path }
       mist_config:
         mist_token: { get_input: mist_token }
         mist_username: { get_input: mist_username }
