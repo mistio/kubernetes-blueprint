@@ -58,28 +58,44 @@ def scale_cluster_down(quantity):
 
     workctx.logger.info('Terminating %d Kubernetes Worker(s)...', len(machines))
     counter = 0
+
+    # Get all nodes via the kubernetes API. This will give us access to all
+    # nodes' metadata.
+    url = 'https://%s:%s@%s' % (username, password, master_ip)
+    nodes = requests.get('%s/api/v1/nodes' % url, verify=False)
+    if not nodes.ok:
+        workctx.logger.debug('Kubernetes API returned: %s', nodes.text)
+        raise NonRecoverableError('Failed to connect to the kubernetes API')
+    nodes = nodes.json()
+
+    # If any of the machines specified, match a kubernetes node, then
+    # we attempt to remove the node from the cluster and destroy it.
     for m in machines:
-        if not m.info['state'] in ('stopped', 'running'):
+        for node in nodes['items']:
+            labels = node['metadata']['labels']
+            if labels['kubernetes.io/hostname'] == m.name:
+                if 'node-role.kubernetes.io/master' in labels.iterkeys():
+                    raise NonRecoverableError('Cannot remove master')
+                break
+        else:
+            workctx.logger.error('%s does not match a kubernetes node', m)
             continue
-        # Properly modify the IP in order to be used in the URL
-        worker_priv_ip = m.info['private_ips'][0]
-        worker_selfLink = 'ip-' + str(worker_priv_ip).replace('.', '-')
-        # Destroy machine
+
+        workctx.logger.info('Removing %s from cluster', m)
+        api = node['metadata']['selfLink']
+        resp = requests.delete('%s/%s' % (url, api), verify=False)
+        if not resp.ok:
+            workctx.logger.error('Bad response from kubernetes: %s', resp.text)
+
+        workctx.logger.info('Destroying machine')
         m.destroy()
+
+        # FIXME Why?
         counter += 1
-
-        workctx.logger.info('Removing node from the Kubernetes cluster...')
-        remove_node = requests.delete('https://%s:%s@%s/api/v1/nodes/%s' % \
-                                      (username, password, master_ip,
-                                       worker_selfLink), verify=False)
-        if not remove_node.ok:
-            ctx.logger.error('Failed to remove node \'%s\' from the '
-                             'Kubernetes cluster', worker_selfLink)
-
         if counter == quantity:
             break
 
-    workctx.logger.info('Downscaling Kubernetes cluster succeeded!')
+    workctx.logger.info('Downscaling the kubernetes cluster completed!')
 
 
 def scale_cluster(delta):
