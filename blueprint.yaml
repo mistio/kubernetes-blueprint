@@ -136,14 +136,12 @@ node_types:
                  - curl -o mega-deploy.sh https://raw.githubusercontent.com/mistio/kubernetes-blueprint/cloud_init/scripts/mega-deploy.sh
                  - chmod +x mega-deploy.sh
                  - ./mega-deploy.sh
-                 - curl -X POST %(callback_url)s
             env_vars:
               default: |
-                ROLE=%(role)s
-                USERNAME=%(username)s
-                PASSWORD=%(password)s
-                TOKEN=%(token)s
-                MASTER=%(master)s
+                ROLE=master
+                USERNAME=admin
+                PASSWORD=admin
+                TOKEN=qwerty.1234567890123456
         configure:
           implementation: tasks/install_kubernetes.py
           inputs:
