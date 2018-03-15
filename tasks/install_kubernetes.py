@@ -1,129 +1,198 @@
 import os
-import sys
-import glob
 import time
-import pkg_resources
-
-from plugin import connection
-from plugin.utils import random_string
-from plugin.constants import SCRIPT_TIMEOUT
 
 from cloudify import ctx
 from cloudify.exceptions import NonRecoverableError
 
-
-# FIXME
-resource_package = __name__
-
-try:
-    # This path is for `cfy local` executions
-    resource_path = os.path.join('../scripts', 'mega-deploy.sh')
-    kubernetes_script = pkg_resources.resource_string(resource_package,
-                                                      resource_path)
-except IOError:
-    # This path is for executions performed by Mist.io
-    tmp_dir = os.path.join('/tmp/templates',
-                           'mistio-kubernetes-blueprint-[A-Za-z0-9]*',
-                           'scripts')
-    scripts_dir = glob.glob(tmp_dir)[0]
-    resource_path = os.path.join(scripts_dir, 'mega-deploy.sh')
-    with open(resource_path) as f:
-        kubernetes_script = f.read()
+from plugin.utils import random_string
+from plugin.constants import SCRIPT_TIMEOUT
+from plugin.connection import MistConnectionClient
 
 
-# TODO deprecate this!
-client = connection.MistConnectionClient().client
-machine = connection.MistConnectionClient().machine
+def prepare_kubernetes_script():
+    """Upload kubernetes installation script, if missing.
 
-is_configured = ctx.node.properties['configured']
-is_master = ctx.node.properties['master']
-kube_type = 'master' if is_master else 'worker'
+    This method is executed at the very beginning, in a pre-configuration
+    phase, to make sure that the kubernetes installation script has been
+    uploaded to mist.io.
 
-ctx.logger.info('Setting up Kubernetes %s Node...', kube_type.upper())
+    This method is meant to be invoked early on by:
 
-if is_master:
-    # Filter out IPv6 addresses
-    private_ips = machine.info['private_ips']
-    private_ips = filter(lambda ip: ':' not in ip, private_ips)
-    if not private_ips:
-        public_ips = machine.info['public_ips']
-        public_ips = filter(lambda ip: ':' not in ip, public_ips)
-    master_ip = private_ips[0] if private_ips else public_ips[0]
-    # Master node's IP address
-    ctx.instance.runtime_properties['master_ip'] = master_ip
-    # Token for secure Master-Worker communication
-    master_token = '%s.%s' % (random_string(length=6), random_string(length=16))
-    ctx.instance.runtime_properties['master_token'] = master_token.lower()
-else:
-    kube_master = ctx.instance.relationships[0]._target.instance
-    ctx.instance.runtime_properties['master_ip'] = \
-        kube_master.runtime_properties.get('master_ip', '')
-    ctx.instance.runtime_properties['master_token'] = \
-        kube_master.runtime_properties.get('master_token', '')
-    ctx.instance.runtime_properties['script_id'] = \
-        kube_master.runtime_properties.get('script_id', '')
+        configure_kubernetes_master()
+        configure_kubernetes_worker()
 
-if not is_configured:
-    if not is_master and ctx.instance.runtime_properties['script_id']:
-        ctx.logger.info('Found existing Kubernetes installation script with '
-                        'resource ID: %s', ctx.instance.runtime_properties[
-                                           'script_id'])
+    The script_id inside each instance's runtime properties is used later
+    on in order to configure kubernetes on the provisioned machines.
+
+    """
+    if ctx.instance.runtime_properties.get('script_id'):
+        ctx.logger.info('Kubernetes installation script already exists')
     else:
-        script_name = 'install_kubernetes_%s' % random_string(length=4)
-        ctx.logger.info('Uploading Kubernetes installation script [%s]...',
-                        script_name)
-        script = client.add_script(name=script_name, script=kubernetes_script,
-                                   location_type='inline',
-                                   exec_type='executable')
+        ctx.logger.info('Uploading fresh kubernetes installation script')
+        # If a script_id does not exist in the node instance's runtime
+        # properties, perhaps because this is the first node that is being
+        # configured, load the script from file, upload it to mist.io, and
+        # run it over ssh. TODO KVM
+        client = MistConnectionClient().client
+        script = os.path.join(os.path.dirname(__file__), 'mega-deploy.sh')
+        ctx.download_resource(
+            os.path.join('scripts', 'mega-deploy.sh'), script
+        )
+        with open(os.path.abspath(script)) as fobj:
+            script = fobj.read()
+        script = client.add_script(
+            name='install_kubernetes_%s' % random_string(length=4),
+            script=script, location_type='inline', exec_type='executable'
+        )
         ctx.instance.runtime_properties['script_id'] = script['id']
 
-    if is_master:
-        passwd = ctx.node.properties.get('auth_pass', '') or random_string(10)
-        ctx.instance.runtime_properties['auth_user'] = \
-            ctx.node.properties['auth_user']
-        ctx.instance.runtime_properties['auth_pass'] = passwd
-        script_params = "-u '%s' -p '%s' -r 'master' -t '%s'" % \
-                        (ctx.node.properties['auth_user'], passwd,
-                         ctx.instance.runtime_properties['master_token'])
-    else:
-        script_params = "-m '%s' -r 'node' -t '%s'" % \
-                        (ctx.instance.runtime_properties['master_ip'],
-                         ctx.instance.runtime_properties['master_token'])
 
-    ctx.logger.info('Deploying Kubernetes on %s node...', kube_type.upper())
-    machine_id = ctx.instance.runtime_properties['machine_id']
-    cloud_id = ctx.node.properties['parameters']['cloud_id']
-    script_id = ctx.instance.runtime_properties['script_id']
+def configure_kubernetes_master():
+    """Configure the kubernetes master.
 
-    script_job = client.run_script(script_id=script_id, cloud_id=cloud_id,
-                                   machine_id=machine_id,
-                                   script_params=script_params, su=True)
+    Sets up the master node and stores the necessary settings inside the node
+    instance's runtime properties, which are required by worker nodes in order
+    to join the kubernetes cluster.
 
-    job_id = script_job['job_id']
-    job = client.get_job(job_id)
-    started_at = job['started_at']
+    """
+    ctx.logger.info('Setting up kubernetes master node')
+    prepare_kubernetes_script()
+
+    # FIXME Re-think this.
+    client = MistConnectionClient().client
+    machine = MistConnectionClient().machine
+
+    # Filter out IPv6 addresses. NOTE We prefer to use private IPs.
+    ips = machine.info['private_ips'] + machine.info['public_ips']
+    ips = filter(lambda ip: ':' not in ip, ips)
+    if not ips:
+        raise NonRecoverableError('No IPs associated with the machine')
+
+    # Master node's IP address.
+    ctx.instance.runtime_properties['master_ip'] = ips[0]
+
+    # Token for secure master-worker communication.
+    token = '%s.%s' % (random_string(length=6), random_string(length=16))
+    ctx.instance.runtime_properties['master_token'] = token.lower()
+
+    # Store kubernetes dashboard credentials in runtime properties.
+    ctx.instance.runtime_properties.update({
+        'auth_user': ctx.node.properties['auth_user'],
+        'auth_pass': ctx.node.properties['auth_pass'] or random_string(10),
+    })
+
+    ctx.logger.info('Installing kubernetes on master node')
+
+    # Prepare script parameters.
+    script_params = "-u '%s' " % ctx.instance.runtime_properties['auth_user']
+    script_params += "-p '%s' " % ctx.instance.runtime_properties['auth_pass']
+    script_params += "-t '%s' " % ctx.instance.runtime_properties['master_token']  # NOQA
+    script_params += "-r 'master'"
+
+    # Run the script.
+    script = client.run_script(
+        script_id=ctx.instance.runtime_properties['script_id'], su=True,
+        machine_id=machine.id,
+        cloud_id=machine.cloud.id,
+        script_params=script_params,
+    )
+    ctx.instance.runtime_properties['job_id'] = script['job_id']
+
+
+def configure_kubernetes_worker():
+    """Configure a new kubernetes node.
+
+    Configures a new worker node and connects it to the kubernetes master.
+
+    """
+    ctx.logger.info('Setting up kubernetes worker')
+    prepare_kubernetes_script()
+
+    # FIXME Re-think this.
+    client = MistConnectionClient().client
+    machine = MistConnectionClient().machine
+
+    # Get master node from relationships schema.
+    master = ctx.instance.relationships[0]._target.instance
+    ctx.instance.runtime_properties.update({
+        'script_id': master.runtime_properties.get('script_id', ''),
+        'master_ip': master.runtime_properties.get('master_ip', ''),
+        'master_token': master.runtime_properties.get('master_token', ''),
+    })
+
+    ctx.logger.info('Configuring kubernetes node')
+
+    # Prepare script parameters.
+    script_params = "-m '%s' " % ctx.instance.runtime_properties['master_ip']
+    script_params += "-t '%s' " % ctx.instance.runtime_properties['master_token']  # NOQA
+    script_params += "-r 'node'"
+
+    # Run the script.
+    script = client.run_script(
+        script_id=ctx.instance.runtime_properties['script_id'], su=True,
+        machine_id=machine.id,
+        cloud_id=machine.cloud.id,
+        script_params=script_params,
+    )
+    ctx.instance.runtime_properties['job_id'] = script['job_id']
+
+
+def wait_for_configuration():
+    """Wait for the current node instance's configuration to finish.
+
+    This method enters a loop, while waiting for the current node
+    instance's configuration to complete.
+
+    This method polls the workflow's logs by communicating with the
+    mist.io API in order to decide whether the script configuring
+    each kubernetes node has finished.
+
+    This method will either exit with an exit code 0 if the current
+    node's configuration completed successfully, or it will raise a
+    non-recoverable exception.
+
+    """
+    ctx.logger.info('Waiting for Kubernetes installation to finish')
+
+    # FIXME Re-think this.
+    client = MistConnectionClient().client
+    machine = MistConnectionClient().machine
+
+    # Mark the beginning of the polling period.
+    started_at = time.time()
 
     while True:
+        time.sleep(10)
+        if time.time() > started_at + SCRIPT_TIMEOUT:
+            raise NonRecoverableError('Time threshold exceeded!')
+        try:
+            job = client.get_job(ctx.instance.runtime_properties['job_id'])
+        except KeyError:
+            raise NonRecoverableError('Failed to fetch installation logs')
         for log in job['logs']:
-            if log['action'] == 'script_finished' and \
-                log.get('script_id', '') == script_id and \
-                    log.get('machine_id', '') == machine_id:
-                if not log['error']:
-                    break
-                # Print entire output only in case an error has occured
-                _stdout = log['stdout']
-                _extra_stdout = log['extra_output']
-                _stdout += _extra_stdout if _extra_stdout else ''
-                ctx.logger.error(_stdout)
-                raise NonRecoverableError('Installation of Kubernetes failed')
+            if log.get('action') != 'script_finished':
+                continue
+            if log.get('machine_id') != machine.id:
+                continue
+            if log.get('error'):
+                msg = log.get('stdout', '')
+                msg += log.get('extra_output', '')
+                ctx.logger.error(msg or log['error'])
+                raise NonRecoverableError('Installation of kubernetes failed')
+            break
         else:
-            if time.time() > started_at + SCRIPT_TIMEOUT:
-                raise NonRecoverableError('Kubernetes installation script is '
-                                          'taking too long. Giving up')
-            ctx.logger.info('Waiting for Kubernetes installation to finish')
-            time.sleep(10)
-            job = client.get_job(job_id)
             continue
         break
 
-    ctx.logger.info('Kubernetes %s installation succeeded', kube_type.upper())
+
+if __name__ == '__main__':
+    """Setup kubernetes on the machines defined by the blueprint."""
+    if not ctx.node.properties['configured']:
+        if not ctx.node.properties['master']:
+            configure_kubernetes_worker()
+        else:
+            configure_kubernetes_master()
+        wait_for_configuration()
+        ctx.logger.info('Kubernetes installation succeeded!')
+    else:
+        ctx.logger.info('Kubernetes already configured')

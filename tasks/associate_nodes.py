@@ -26,31 +26,9 @@ node_instance['host_id'] = node_instance['id']
 node_instance['version'] = 9  # TODO
 node_instance['state'] = 'started'
 node_instance['runtime_properties'] = {
-    'info': {
-        'can_start': machine.info['can_start'],
-        'can_reboot': machine.info['can_reboot'],
-        'uuid': machine.info['uuid'],
-        'can_destroy': machine.info['can_destroy'],
-        'extra': machine.info['extra'],
-        'name': machine.info['name'],
-        'missing_since': machine.info['missing_since'],
-        'tags': machine.info['tags'],
-        'can_stop': machine.info['can_stop'],
-        'private_ips': machine.info['private_ips'],
-        'imageId': machine.info['imageId'],
-        'public_ips': machine.info['public_ips'],
-        'state': machine.info['state'],
-        'can_suspend': machine.info['can_suspend'],
-        'can_rename': machine.info['can_rename'],
-        'can_undefine': machine.info['can_undefine'],
-        'can_tag': machine.info['can_tag'],
-        'last_seen': machine.info['last_seen'],
-        'id': machine.info['id'],
-        'can_resume': machine.info['can_resume'],
-        'size': machine.info['size']
-    },
+    'info': machine.info,
     'mist_type': 'machine',
-    'machine_id': machine.info['id'],
+    'machine_id': machine.info['machine_id'],
     'ip': machine.info['public_ips'][0],
     'master_ip': ctx.instance.runtime_properties['master_ip'],
     'networks:': [machine.info['public_ips'][0]]
