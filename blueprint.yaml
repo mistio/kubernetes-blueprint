@@ -74,7 +74,7 @@ inputs:
   auth_pass:
     description: The password used for accessing the Kubernetes dashboard. If left blank, the password will be auto-generated
     type: string
-    default: ''
+    default: 'admin'
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # Declaration of Kubernetes node_types
@@ -137,11 +137,11 @@ node_types:
                  - chmod +x mega-deploy.sh
                  - ./mega-deploy.sh
             env_vars:
-              default: |
-                ROLE=master
-                USERNAME=admin
-                PASSWORD=admin
-                TOKEN=qwerty.1234567890123456
+              default:
+                ROLE: 'master'
+                MASTER: { get_attribute: [ SELF, ip ] }
+                USERNAME: { get_input: auth_user }
+                PASSWORD: { get_input: auth_pass }
         configure:
           implementation: tasks/install_kubernetes.py
           inputs:
@@ -191,6 +191,20 @@ node_types:
           inputs:
             node_type:
               default: 'worker'
+            cloud_init:
+              default: |
+                #cloud-config
+                runcmd:
+                 - curl -o mega-deploy.sh https://raw.githubusercontent.com/mistio/kubernetes-blueprint/cloud_init/scripts/mega-deploy.sh
+                 - chmod +x mega-deploy.sh
+                 - ./mega-deploy.sh
+            env_vars:
+              default:
+                ROLE: 'node'
+                # token:
+                MASTER: { get_attribute: [ kube_master, ip ] }
+                USERNAME: { get_input: auth_user }
+                PASSWORD: { get_input: auth_pass }
         configure:
           implementation: tasks/install_kubernetes.py
           inputs:
