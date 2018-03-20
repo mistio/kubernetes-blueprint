@@ -125,7 +125,7 @@ node_types:
     interfaces:
       cloudify.interfaces.lifecycle:
         create:
-          implementation: mist.plugin.server.create
+          implementation: mist.plugin.server.create  # tasks/create.py
           inputs:
             node_type:
               default: 'master'
@@ -142,6 +142,8 @@ node_types:
                 MASTER: { get_attribute: [ SELF, ip ] }
                 USERNAME: { get_input: auth_user }
                 PASSWORD: { get_input: auth_pass }
+                APITOKEN: { get_input: mist_token }
+                MISTURI: { get_input: mist_uri }
         configure:
           implementation: tasks/install_kubernetes.py
           inputs:
@@ -201,10 +203,11 @@ node_types:
             env_vars:
               default:
                 ROLE: 'node'
-                # token:
                 MASTER: { get_attribute: [ kube_master, ip ] }
                 USERNAME: { get_input: auth_user }
                 PASSWORD: { get_input: auth_pass }
+                APITOKEN: { get_input: mist_token }
+                MISTURI: { get_input: mist_uri }
         configure:
           implementation: tasks/install_kubernetes.py
           inputs:
