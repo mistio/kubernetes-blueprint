@@ -1,11 +1,11 @@
 import os
-import time
 
 from cloudify import ctx
 from cloudify.exceptions import NonRecoverableError
 
 from plugin.utils import random_string
-from plugin.constants import SCRIPT_TIMEOUT
+from plugin.utils import wait_for_event
+
 from plugin.connection import MistConnectionClient
 
 
@@ -105,13 +105,6 @@ def configure_kubernetes_worker():
     Configures a new worker node and connects it to the kubernetes master.
 
     """
-    ctx.logger.info('Setting up kubernetes worker')
-    prepare_kubernetes_script()
-
-    # FIXME Re-think this.
-    client = MistConnectionClient().client
-    machine = MistConnectionClient().machine
-
     # Get master node from relationships schema.
     master = ctx.instance.relationships[0]._target.instance
     ctx.instance.runtime_properties.update({
@@ -119,6 +112,13 @@ def configure_kubernetes_worker():
         'master_ip': master.runtime_properties.get('master_ip', ''),
         'master_token': master.runtime_properties.get('master_token', ''),
     })
+
+    ctx.logger.info('Setting up kubernetes worker')
+    prepare_kubernetes_script()
+
+    # FIXME Re-think this.
+    client = MistConnectionClient().client
+    machine = MistConnectionClient().machine
 
     ctx.logger.info('Configuring kubernetes node')
 
@@ -137,54 +137,6 @@ def configure_kubernetes_worker():
     ctx.instance.runtime_properties['job_id'] = script['job_id']
 
 
-def wait_for_configuration():
-    """Wait for the current node instance's configuration to finish.
-
-    This method enters a loop, while waiting for the current node
-    instance's configuration to complete.
-
-    This method polls the workflow's logs by communicating with the
-    mist.io API in order to decide whether the script configuring
-    each kubernetes node has finished.
-
-    This method will either exit with an exit code 0 if the current
-    node's configuration completed successfully, or it will raise a
-    non-recoverable exception.
-
-    """
-    ctx.logger.info('Waiting for Kubernetes installation to finish')
-
-    # FIXME Re-think this.
-    client = MistConnectionClient().client
-    machine = MistConnectionClient().machine
-
-    # Mark the beginning of the polling period.
-    started_at = time.time()
-
-    while True:
-        time.sleep(10)
-        if time.time() > started_at + SCRIPT_TIMEOUT:
-            raise NonRecoverableError('Time threshold exceeded!')
-        try:
-            job = client.get_job(ctx.instance.runtime_properties['job_id'])
-        except KeyError:
-            raise NonRecoverableError('Failed to fetch installation logs')
-        for log in job['logs']:
-            if log.get('action') != 'script_finished':
-                continue
-            if log.get('machine_id') != machine.id:
-                continue
-            if log.get('error'):
-                msg = log.get('stdout', '')
-                msg += log.get('extra_output', '')
-                ctx.logger.error(msg or log['error'])
-                raise NonRecoverableError('Installation of kubernetes failed')
-            break
-        else:
-            continue
-        break
-
-
 if __name__ == '__main__':
     """Setup kubernetes on the machines defined by the blueprint."""
     if not ctx.node.properties['configured']:
@@ -192,7 +144,13 @@ if __name__ == '__main__':
             configure_kubernetes_worker()
         else:
             configure_kubernetes_master()
-        wait_for_configuration()
+        wait_for_event(
+            job_id=ctx.instance.runtime_properties['job_id'],
+            job_kwargs={
+                'action': 'script_finished',
+                'machine_id': ctx.instance.runtime_properties['machine_id'],
+            }
+        )
         ctx.logger.info('Kubernetes installation succeeded!')
     else:
         ctx.logger.info('Kubernetes already configured')
