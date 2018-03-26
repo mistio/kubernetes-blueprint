@@ -83,7 +83,7 @@ def scale_cluster_up(quantity):
             raise NonRecovarableError('Input parameter \'%s\' is required, but '
                                       'it is missing', param)
         kwargs['%s_id' % param.split('_')[1]] = inputs[param]
-    kwargs['networks'] = inputs.get('networks', [])
+    kwargs['networks'] = inputs.get('mist_networks', [])
 
     workctx.logger.info("Deploying %d '%s' node(s)", quantity, machine_name)
     job = cloud.create_machine(async=True, name=machine_name, key=key,

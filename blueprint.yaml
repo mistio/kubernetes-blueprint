@@ -64,8 +64,8 @@ inputs:
     description: The SSH user. If left blank, Mist.io will try to auto-discover
     type: string
     default: ''
-  networks:
-    description: OpenStack networks. Only required in case you are provisioning machines on OpenStack
+  mist_networks_1:
+    description: Networks that the machines will join
     default: []
   auth_user:  # TODO can be a separate data type
     description: The username used for accessing the Kubernetes dashboard
@@ -232,7 +232,7 @@ node_templates:
         image_id: { get_input: mist_image_1 }
         size_id: { get_input: mist_size_1 }
         location_id: { get_input: mist_location_1 }
-        networks: { get_input: networks }
+        networks: { get_input: mist_networks_1 }
         key: { get_input: mist_key_master }
       mist_config:
         mist_token: { get_input: mist_token }
@@ -253,7 +253,7 @@ node_templates:
         image_id: { get_input: mist_image_1 }
         size_id: { get_input: mist_size_1 }
         location_id: { get_input: mist_location_1 }
-        networks: { get_input: networks }
+        networks: { get_input: mist_networks_1 }
         key: { get_input: mist_key_worker }
       mist_config:
         mist_token: { get_input: mist_token }
@@ -320,8 +320,8 @@ workflows:
         description: The ID of a VM's location
         type: string
         default: ''
-      networks:
-        description: OpenStack networks. Only required in case you are provisioning machines on OpenStack
+      mist_networks:
+        description: Networks that the machines will join
         default: []
       mist_key:
         description: The ID of the SSH key to be deployed on the VM
