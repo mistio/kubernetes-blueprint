@@ -70,14 +70,15 @@ if __name__ == '__main__':
     """"""
     # FIXME Re-think this.
     #
-    from ipdb import set_trace; set_trace()
     if MistConnectionClient().cloud.provider in constants.CLOUD_INIT_PROVIDERS:
         prepare_cloud_init()
 
     #
     if ctx.node.properties['master']:
         create_operation(ctx=ctx, node_type='master')
+        print '############## AFTER CREATE_OPERATION'
         machine = MistConnectionClient().machine
+        print '############## MistConnectionClient'
 
         # Filter out IPv6 addresses. NOTE We prefer to use private IPs.
         ips = machine.info['private_ips'] + machine.info['public_ips']
