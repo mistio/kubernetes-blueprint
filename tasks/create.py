@@ -50,12 +50,13 @@ def prepare_cloud_init():
         arguments += "-r 'node'"
 
     #
+    ctx.logger.debug('Will run mega-deploy.sh with: %s', arguments)
     ctx.instance.runtime_properties['cloud_init_arguments'] = arguments
 
     #
     cloud_init = os.path.join(os.path.dirname(__file__), 'cloud_init.yml')
     ctx.download_resource_and_render(
-        os.path.join('scripts', 'cloud_init.yml'), cloud_init
+        os.path.join('cloud-init', 'cloud_init.yml'), cloud_init
     )
     with open(os.path.abspath(cloud_init)) as fobj:
         ctx.instance.runtime_properties['cloud_init'] = fobj.read()

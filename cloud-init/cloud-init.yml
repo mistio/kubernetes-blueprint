@@ -6,6 +6,6 @@ runcmd:
  - curl -o mega-deploy.sh https://raw.githubusercontent.com/mistio/kubernetes-blueprint/cloud_init/scripts/mega-deploy.sh
  - chmod +x mega-deploy.sh
  - ./mega-deploy.sh {{ ctx.instance.runtime_properties.cloud_init_arguments }}
- - output=`cat /var/lib/cloud/data/result.json`
- - error=`cat /var/lib/cloud/data/result.json | jq ".v1.errors"`
- - curl -X DELETE "{{ ctx.instance.runtime_properties.mist_uri }}/api/v1/jobs?job_id={{ ctx.instance.runtime_properties.job_id }}&script_id={{ ctx.instance.runtime_properties.script_id }}&action=script_finished" -H "Authorization: {{ ctx.instance.runtime_properties.mist_token }}"
+ - output=$(cat /var/lib/cloud/data/result.json)
+ - errors=$(cat /var/lib/cloud/data/result.json | jq ".v1.errors[]")
+ - curl -X DELETE "{{ ctx.node.properties.mist_uri }}/api/v1/jobs/{{ ctx.instance.runtime_properties.job_id }}?script_id={{ ctx.instance.runtime_properties.script_id }}&action=cloud_init_finished&output=$output&errors=$errors" -H "Authorization: {{ ctx.node.properties.config.mist_token }}"

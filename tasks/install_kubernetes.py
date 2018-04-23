@@ -137,7 +137,7 @@ if __name__ == '__main__':
         wait_for_event(
             job_id=ctx.instance.runtime_properties['job_id'],
             job_kwargs={
-                'action': 'script_finished',
+                'action': 'cloud_init_finished',
                 'script_id': ctx.instance.runtime_properties['script_id'],
             }
         )
