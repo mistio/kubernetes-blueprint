@@ -3,6 +3,8 @@ import os
 from cloudify import ctx
 from cloudify.exceptions import NonRecoverableError
 
+from plugin import constants
+
 from plugin.utils import random_string
 from plugin.utils import wait_for_event
 
@@ -32,7 +34,7 @@ def prepare_kubernetes_script():
         # If a script_id does not exist in the node instance's runtime
         # properties, perhaps because this is the first node that is being
         # configured, load the script from file, upload it to mist.io, and
-        # run it over ssh. TODO KVM
+        # run it over ssh.
         client = MistConnectionClient().client
         script = os.path.join(os.path.dirname(__file__), 'mega-deploy.sh')
         ctx.download_resource(
@@ -61,15 +63,6 @@ def configure_kubernetes_master():
     # FIXME Re-think this.
     client = MistConnectionClient().client
     machine = MistConnectionClient().machine
-
-    # Filter out IPv6 addresses. NOTE We prefer to use private IPs.
-    ips = machine.info['private_ips'] + machine.info['public_ips']
-    ips = filter(lambda ip: ':' not in ip, ips)
-    if not ips:
-        raise NonRecoverableError('No IPs associated with the machine')
-
-    # Master node's IP address.
-    ctx.instance.runtime_properties['master_ip'] = ips[0]
 
     # Token for secure master-worker communication.
     token = '%s.%s' % (random_string(length=6), random_string(length=16))
@@ -139,7 +132,16 @@ def configure_kubernetes_worker():
 
 if __name__ == '__main__':
     """Setup kubernetes on the machines defined by the blueprint."""
-    if not ctx.node.properties['configured']:
+    # FIXME Re-think this.
+    if MistConnectionClient().cloud.provider in constants.CLOUD_INIT_PROVIDERS:
+        wait_for_event(
+            job_id=ctx.instance.runtime_properties['job_id'],
+            job_kwargs={
+                'action': 'cloud_init_finished',
+                'machine_name': ctx.instance.runtime_properties['machine_name']
+            }
+        )
+    elif not ctx.node.properties['configured']:
         if not ctx.node.properties['master']:
             configure_kubernetes_worker()
         else:
