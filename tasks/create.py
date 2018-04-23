@@ -70,7 +70,10 @@ if __name__ == '__main__':
 
     # Get the master node's IP address. NOTE We prefer to use private IPs.
     if ctx.node.properties['master']:
-        create_operation(node_type='master')
+        create_operation(
+            node_type='master',
+            cloud_init=ctx.instance.runtime_properties.get('cloud_init', '')
+        )
 
         ips = (ctx.instance.runtime_properties['info']['private_ips'] +
                ctx.instance.runtime_properties['info']['public_ips'])
@@ -80,4 +83,7 @@ if __name__ == '__main__':
 
         ctx.instance.runtime_properties['master_ip'] = ips[0]
     else:
-        create_operation(node_type='worker')
+        create_operation(
+            node_type='worker',
+            cloud_init=ctx.instance.runtime_properties.get('cloud_init', '')
+        )
