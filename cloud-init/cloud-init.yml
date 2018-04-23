@@ -8,4 +8,4 @@ runcmd:
  - ./mega-deploy.sh {{ ctx.instance.runtime_properties.cloud_init_arguments }}
  - output=$(cat /var/lib/cloud/data/result.json)
  - errors=$(cat /var/lib/cloud/data/result.json | jq ".v1.errors[]")
- - curl -X DELETE "{{ ctx.node.properties.mist_uri }}/api/v1/jobs/{{ ctx.instance.runtime_properties.job_id }}?script_id={{ ctx.instance.runtime_properties.script_id }}&action=cloud_init_finished&output=$output&errors=$errors" -H "Authorization: {{ ctx.node.properties.config.mist_token }}"
+ - curl -X DELETE "{{ ctx.node.properties.mist_uri }}/api/v1/jobs/{{ ctx.instance.runtime_properties.job_id }}?script_id={{ ctx.instance.runtime_properties.script_id }}&action=cloud_init_finished&output=$output&errors=$errors" -H "Authorization: {{ ctx.node.properties.mist_config.mist_token }}"
