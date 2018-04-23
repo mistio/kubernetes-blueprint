@@ -77,11 +77,11 @@ if __name__ == '__main__':
     if ctx.node.properties['master']:
         create_operation(ctx=ctx, node_type='master')
         print '############## AFTER CREATE_OPERATION'
-        machine = MistConnectionClient().machine
+        #machine = MistConnectionClient().machine
         print '############## MistConnectionClient'
 
         # Filter out IPv6 addresses. NOTE We prefer to use private IPs.
-        ips = machine.info['private_ips'] + machine.info['public_ips']
+        ips = ctx.instance.info['private_ips'] + ctx.instance.info['public_ips']
         ips = filter(lambda ip: ':' not in ip, ips)
         if not ips:
             raise NonRecoverableError('No IPs associated with the machine')
