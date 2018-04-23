@@ -81,7 +81,8 @@ if __name__ == '__main__':
         print '############## MistConnectionClient'
 
         # Filter out IPv6 addresses. NOTE We prefer to use private IPs.
-        ips = ctx.instance.info['private_ips'] + ctx.instance.info['public_ips']
+        ips = (ctx.instance.runtime_properties.info['private_ips'] +
+               ctx.instance.runtime_properties.info['public_ips'])
         ips = filter(lambda ip: ':' not in ip, ips)
         if not ips:
             raise NonRecoverableError('No IPs associated with the machine')
