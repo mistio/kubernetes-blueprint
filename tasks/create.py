@@ -70,6 +70,7 @@ if __name__ == '__main__':
     """"""
     # FIXME Re-think this.
     #
+    from ipdb import set_trace; set_trace()
     if MistConnectionClient().cloud.provider in constants.CLOUD_INIT_PROVIDERS:
         prepare_cloud_init()
 
