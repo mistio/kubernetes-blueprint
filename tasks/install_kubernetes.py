@@ -150,9 +150,7 @@ if __name__ == '__main__':
             }
         )
         ctx.logger.info('Kubernetes installation succeeded!')
-        return
-
-    if not ctx.node.properties['configured']:
+    elif not ctx.node.properties['configured']:
         if not ctx.node.properties['master']:
             configure_kubernetes_worker()
         else:
