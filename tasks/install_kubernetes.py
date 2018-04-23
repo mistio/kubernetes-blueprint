@@ -3,6 +3,8 @@ import os
 from cloudify import ctx
 from cloudify.exceptions import NonRecoverableError
 
+from plugin import constants
+
 from plugin.utils import random_string
 from plugin.utils import wait_for_event
 
