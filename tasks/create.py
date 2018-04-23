@@ -6,13 +6,13 @@ from cloudify.exceptions import NonRecoverableError
 
 from plugin import constants
 from plugin.utils import random_string
-from plugin.server import create as create_operation
+from plugin.server import create_operation
 from plugin.connection import MistConnectionClient
 
 
-def create(node_type):
-    """"""
-    create_operation(**{'node_type': node_type})
+#def create(node_type):
+#    """"""
+#    create_operation(**{'node_type': node_type})
 
 
 def prepare_cloud_init():
@@ -75,7 +75,7 @@ if __name__ == '__main__':
 
     #
     if ctx.node.properties['master']:
-        create(node_type='master')
+        create_operation(node_type='master')
         machine = MistConnectionClient().machine
 
         # Filter out IPv6 addresses. NOTE We prefer to use private IPs.
@@ -87,4 +87,4 @@ if __name__ == '__main__':
         # Master node's IP address.
         ctx.instance.runtime_properties['master_ip'] = ips[0]
     else:
-        create(node_type='worker')
+        create_operation(node_type='worker')
