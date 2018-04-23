@@ -2,7 +2,7 @@ import os
 import uuid
 
 from cloudify import ctx
-from cloudify.operators import operation
+from cloudify.decorators import operation
 from cloudify.exceptions import NonRecoverableError
 
 from plugin import constants
