@@ -2,6 +2,7 @@ import os
 import uuid
 
 from cloudify import ctx
+from cloudify.operators import operation
 from cloudify.exceptions import NonRecoverableError
 
 from plugin import constants
@@ -66,7 +67,8 @@ def prepare_cloud_init():
         ctx.instance.runtime_properties['cloud_init'] = fobj.read()
 
 
-if __name__ == '__main__':
+@operation
+def main(**kwargs):
     """"""
     # FIXME Re-think this.
     #
@@ -88,3 +90,7 @@ if __name__ == '__main__':
         ctx.instance.runtime_properties['master_ip'] = ips[0]
     else:
         create_operation(ctx=ctx, node_type='worker')
+
+
+if __name__ == '__main__':
+    main()
