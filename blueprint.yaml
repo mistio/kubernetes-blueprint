@@ -125,7 +125,7 @@ node_types:
     interfaces:
       cloudify.interfaces.lifecycle:
         create:
-          implementation: mist.plugin.server.create  # tasks/create.py
+          implementation: tasks/create.py
           inputs:
             node_type:
               default: 'master'
