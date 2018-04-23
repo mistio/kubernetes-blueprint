@@ -75,7 +75,7 @@ if __name__ == '__main__':
 
     #
     if ctx.node.properties['master']:
-        create_operation(node_type='master')
+        create_operation(ctx=ctx, node_type='master')
         machine = MistConnectionClient().machine
 
         # Filter out IPv6 addresses. NOTE We prefer to use private IPs.
@@ -87,4 +87,4 @@ if __name__ == '__main__':
         # Master node's IP address.
         ctx.instance.runtime_properties['master_ip'] = ips[0]
     else:
-        create_operation(node_type='worker')
+        create_operation(ctx=ctx, node_type='worker')
