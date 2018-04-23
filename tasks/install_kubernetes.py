@@ -151,7 +151,6 @@ if __name__ == '__main__':
                 'script_id': ctx.instance.runtime_properties['script_id'],
             }
         )
-        ctx.logger.info('Kubernetes installation succeeded!')
     elif not ctx.node.properties['configured']:
         if not ctx.node.properties['master']:
             configure_kubernetes_worker()
