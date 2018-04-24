@@ -56,7 +56,7 @@ def prepare_cloud_init():
         ('machine_name', '$instance-id'),
     ]
     data = ['"%s=%s"' % (k, v) for k, v in data]
-    data = '--url-encode ' + ' --url-encode '.join(data)
+    data = '--data-urlencode ' + ' --data-urlencode '.join(data)
     ctx.instance.runtime_properties['cloud_init_data'] = data
 
     #
