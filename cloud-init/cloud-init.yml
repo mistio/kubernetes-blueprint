@@ -10,5 +10,4 @@ runcmd:
   - echo $ERRORS
   - >
       curl -X DELETE -H 'Authorization: {{ ctx.node.properties.mist_config.mist_token }}'
-      {{ ctx.node.properties.mist_config.mist_uri }}/api/v1/jobs/{{ ctx.instance.runtime_properties.job_id }}
-      --data-urlencode 'action=cloud_init_finished' --data-urlencode 'machine_name=$INSTANCE_ID'
+      {{ ctx.node.properties.mist_config.mist_uri }}/api/v1/jobs/{{ ctx.instance.runtime_properties.job_id }}?action=cloud_init_finished&machine_name=$INSTANCE_ID
