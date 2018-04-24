@@ -4,4 +4,4 @@ packages:
  - jq
 runcmd:
  - curl https://raw.githubusercontent.com/mistio/kubernetes-blueprint/cloud_init/scripts/mega-deploy.sh | sh -s -- {{ ctx.instance.runtime_properties.cloud_init_arguments }}
- - curl -X DELETE {{ ctx.instance.runtime_properties.cloud_init_headers }} {{ ctx.instance.runtime_properties.cloud_init_url }} {{ ctx.instance.runtime_properties.cloud_init_data }}
+ - 'curl -X DELETE {{ ctx.instance.runtime_properties.cloud_init_headers }} {{ ctx.instance.runtime_properties.cloud_init_url }} {{ ctx.instance.runtime_properties.cloud_init_data }}'
