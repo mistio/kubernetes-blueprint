@@ -65,7 +65,10 @@ def prepare_cloud_init():
 if __name__ == '__main__':
     """"""
     # FIXME Re-think this.
-    if MistConnectionClient().cloud.provider in constants.CLOUD_INIT_PROVIDERS:
+    client = MistConnectionClient()
+    ctx.instance.runtime_properties['job_id'] = client.job_id
+
+    if client.cloud.provider in constants.CLOUD_INIT_PROVIDERS:
         prepare_cloud_init()
 
     # Get the master node's IP address. NOTE We prefer to use private IPs.
