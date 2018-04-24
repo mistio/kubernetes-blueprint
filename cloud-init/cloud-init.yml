@@ -4,9 +4,9 @@ packages:
   - jq
 runcmd:
 #  - curl https://raw.githubusercontent.com/mistio/kubernetes-blueprint/cloud_init/scripts/mega-deploy.sh | bash -s -- {{ ctx.instance.runtime_properties.cloud_init_arguments }}
-  - INSTANCE_ID=$(cat /var/lib/cloud/data/instance-id)
+  - INSTANCE_ID=`cat /var/lib/cloud/data/instance-id`
   - echo $INSTANCE_ID
-  - ERRORS=$(cat /var/lib/cloud/data/result.json | jq ".v1.errors[]")
+  - ERRORS=`cat /var/lib/cloud/data/result.json | jq ".v1.errors[]"`
   - echo $ERRORS
   - >
       curl -X DELETE -H 'Authorization: {{ ctx.node.properties.mist_config.mist_token }}'

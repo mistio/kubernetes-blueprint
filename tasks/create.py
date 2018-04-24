@@ -6,6 +6,9 @@ from cloudify.exceptions import NonRecoverableError
 
 from plugin import constants
 from plugin.utils import random_string
+from plugin.utils import generate_name
+from plugin.utils import get_stack_name
+
 from plugin.server import create_operation
 from plugin.connection import MistConnectionClient
 
@@ -85,12 +88,20 @@ if __name__ == '__main__':
     conn = MistConnectionClient()
     ctx.instance.runtime_properties['job_id'] = conn.client.job_id
 
+    #
+    name = generate_name(
+        get_stack_name(),
+        'master' if ctx.node.properties['master'] else 'worker'
+    )
+    ctx.instance.runtime_properties['machine_name'] = name
+
     if conn.cloud.provider in constants.CLOUD_INIT_PROVIDERS:
         prepare_cloud_init()
 
     # Get the master node's IP address. NOTE We prefer to use private IPs.
     if ctx.node.properties['master']:
         create_operation(
+            name=name,
             node_type='master',
             cloud_init=ctx.instance.runtime_properties.get('cloud_init', '')
         )
@@ -104,6 +115,7 @@ if __name__ == '__main__':
         ctx.instance.runtime_properties['master_ip'] = ips[0]
     else:
         create_operation(
+            name=name,
             node_type='worker',
             cloud_init=ctx.instance.runtime_properties.get('cloud_init', '')
         )
