@@ -55,17 +55,17 @@ def prepare_cloud_init():
         ('action', 'cloud_init_finished'),
         ('machine_name', '$instance-id'),
     ]
-    data = ['"%s=%s"' % (k, v) for k, v in data]
+    data = ["'%s=%s'" % (k, v) for k, v in data]
     data = '--data-urlencode ' + ' --data-urlencode '.join(data)
     ctx.instance.runtime_properties['cloud_init_data'] = data
 
     #
-    url = '"%s/api/v1/jobs/%s"' % (ctx.node.properties['mist_config']['mist_uri'],
+    url = "'%s/api/v1/jobs/%s'" % (ctx.node.properties['mist_config']['mist_uri'],
                                    ctx.instance.runtime_properties['job_id'])
     ctx.instance.runtime_properties['cloud_init_url'] = url
 
     #
-    header = '-H "Authorization: %s"' % ctx.node.properties['mist_config']['mist_token']
+    header = "-H 'Authorization: %s'" % ctx.node.properties['mist_config']['mist_token']
     ctx.instance.runtime_properties['cloud_init_headers'] = header
     ctx.instance.runtime_properties['cloud_init_arguments'] = arguments
 
