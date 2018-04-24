@@ -1,10 +1,14 @@
 #cloud-config
 packages:
- - curl
- - jq
+  - curl
+  - jq
 runcmd:
 #  - curl https://raw.githubusercontent.com/mistio/kubernetes-blueprint/cloud_init/scripts/mega-deploy.sh | bash -s -- {{ ctx.instance.runtime_properties.cloud_init_arguments }}
+  - INSTANCE_ID=$(cat /var/lib/cloud/data/instance-id)
+  - echo $INSTANCE_ID
+  - ERRORS=$(cat /var/lib/cloud/data/result.json | jq ".v1.errors[]")
+  - echo $ERRORS
   - >
       curl -X DELETE -H 'Authorization: {{ ctx.node.properties.mist_config.mist_token }}'
-      {{ ctx.instance.runtime_properties.cloud_init_url }}
+      {{ ctx.node.properties.mist_config.mist_uri }}/api/v1/jobs/{{ ctx.instance.runtime_properties.job_id }}
       --data-urlencode 'action=cloud_init_finished' --data-urlencode 'machine_name=$INSTANCE_ID'

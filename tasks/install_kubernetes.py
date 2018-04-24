@@ -138,7 +138,7 @@ if __name__ == '__main__':
             job_id=ctx.instance.runtime_properties['job_id'],
             job_kwargs={
                 'action': 'cloud_init_finished',
-                'script_id': ctx.instance.runtime_properties['script_id'],
+                'machine_name': ctx.instance.runtime_properties['machine_name']
             }
         )
     elif not ctx.node.properties['configured']:
