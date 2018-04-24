@@ -45,9 +45,9 @@ def prepare_cloud_init():
         })
 
         #
-        arguments = "-m '%s' " % master.runtime_properties['master_ip']
-        arguments += "-t '%s' " % master.runtime_properties['master_token']
-        arguments += "-r 'node'"
+        arguments = "-m \'%s\' " % master.runtime_properties['master_ip']
+        arguments += "-t \'%s\' " % master.runtime_properties['master_token']
+        arguments += "-r \'node\'"
 
     #
     ctx.logger.debug('Will run mega-deploy.sh with: %s', arguments)
