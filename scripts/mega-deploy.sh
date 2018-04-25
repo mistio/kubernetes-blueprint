@@ -1118,7 +1118,7 @@ apt-get update
 apt-get install -y curl apt-transport-https software-properties-common ca-certificates python-pip
 
 # To be used later on yaml parsing
-pip install --upgrade pip
+pip2 install --upgrade pip==9.0.3
 pip install pyyaml
 
 # Install docker
@@ -1182,7 +1182,7 @@ yum install -y docker kubelet-$(yum list available kubelet --showduplicates | gr
                       python-pip
 
 # To be used later on yaml parsing
-pip install --upgrade pip
+pip2 install --upgrade pip==9.0.3
 pip install pyyaml
 
 systemctl enable docker && systemctl start docker
