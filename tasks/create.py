@@ -81,7 +81,9 @@ if __name__ == '__main__':
     """"""
     # FIXME Re-think this.
     conn = MistConnectionClient()
+    ctx.logger.error('@@@@@@@@@@@@@@@@@@@@@@@@ %s', ctx.instance.runtime_properties)
     ctx.instance.runtime_properties['job_id'] = conn.client.job_id
+    ctx.logger.error('&&&&&&&&&&&&&&&&&&&&&&&& %s', ctx.instance.runtime_properties)
 
     #
     name = generate_name(
