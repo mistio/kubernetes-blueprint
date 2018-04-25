@@ -1118,7 +1118,7 @@ apt-get update
 apt-get install -y curl apt-transport-https software-properties-common ca-certificates python-pip
 
 # To be used later on yaml parsing
-pip install --upgrade pip
+pip install --upgrade pip==9.0.3
 pip install pyyaml
 
 # Install docker
