@@ -1115,10 +1115,10 @@ ubuntu_main() {
 # Install needed packages
 apt-get install -y apt-transport-https | echo "Error while installing apt-transport-https. Moving forward"
 apt-get update
-apt-get install -y curl apt-transport-https software-properties-common ca-certificates python-pip
+apt-get install -y curl apt-transport-https software-properties-common ca-certificates # python-pip
 
 # To be used later on yaml parsing
-#pip2 install --upgrade pip==9.0.3
+pip install --upgrade pip==9.0.3
 pip install pyyaml
 
 # Install docker
