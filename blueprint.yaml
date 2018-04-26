@@ -11,7 +11,7 @@ tosca_definitions_version: cloudify_dsl_1_2
 
 imports:
   - http://www.getcloudify.org/spec/cloudify/3.3m5/types.yaml
-  - http://raw.githubusercontent.com/mistio/cloudify-mist-plugin/kvm_template/plugin.yaml
+  - http://raw.githubusercontent.com/mistio/cloudify-mist-plugin/master/plugin.yaml
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # Inputs section
@@ -129,21 +129,6 @@ node_types:
           inputs:
             node_type:
               default: 'master'
-            cloud_init:
-              default: |
-                #cloud-config
-                runcmd:
-                 - curl -o mega-deploy.sh https://raw.githubusercontent.com/mistio/kubernetes-blueprint/cloud_init/scripts/mega-deploy.sh
-                 - chmod +x mega-deploy.sh
-                 - ./mega-deploy.sh
-            env_vars:
-              default:
-                ROLE: 'master'
-                MASTER: { get_attribute: [ SELF, ip ] }
-                USERNAME: { get_input: auth_user }
-                PASSWORD: { get_input: auth_pass }
-                APITOKEN: { get_input: mist_token }
-                MISTURI: { get_input: mist_uri }
         configure:
           implementation: tasks/install_kubernetes.py
           inputs:
@@ -193,21 +178,6 @@ node_types:
           inputs:
             node_type:
               default: 'worker'
-            cloud_init:
-              default: |
-                #cloud-config
-                runcmd:
-                 - curl -o mega-deploy.sh https://raw.githubusercontent.com/mistio/kubernetes-blueprint/cloud_init/scripts/mega-deploy.sh
-                 - chmod +x mega-deploy.sh
-                 - ./mega-deploy.sh
-            env_vars:
-              default:
-                ROLE: 'node'
-                MASTER: { get_attribute: [ kube_master, ip ] }
-                USERNAME: { get_input: auth_user }
-                PASSWORD: { get_input: auth_pass }
-                APITOKEN: { get_input: mist_token }
-                MISTURI: { get_input: mist_uri }
         configure:
           implementation: tasks/install_kubernetes.py
           inputs:

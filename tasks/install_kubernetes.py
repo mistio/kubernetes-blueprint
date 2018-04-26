@@ -1,7 +1,6 @@
 import os
 
 from cloudify import ctx
-from cloudify.exceptions import NonRecoverableError
 
 from plugin import constants
 
