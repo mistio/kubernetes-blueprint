@@ -1,14 +1,12 @@
 #cloud-config
 packages:
-  - jq
   - curl
 runcmd:
-  - curl https://raw.githubusercontent.com/mistio/kubernetes-blueprint/cloud_init/scripts/mega-deploy.sh | sudo bash -s -- {{ ctx.instance.runtime_properties.cloud_init_arguments }}
-  - ERRORS=\$(cat /var/lib/cloud/data/result.json | jq ".v1.errors[]")
+  - >
+      curl https://raw.githubusercontent.com/mistio/kubernetes-blueprint/cloud_init/scripts/mega-deploy.sh | sudo bash -s -- {{ ctx.instance.runtime_properties.cloud_init_arguments }} &&
+      echo "false" > /tmp/cloud-init-error ||
+      echo "true" > /tmp/cloud-init-error
   - OUTPUT=\$(cat /var/log/cloud-init-output.log)
-  - INSTANCE=\$(cat /var/lib/cloud/data/instance-id)
-  - echo \${INSTANCE}
   - >
       curl -X DELETE -H 'Authorization: {{ ctx.node.properties.mist_config.mist_token }}'
-      {{ ctx.node.properties.mist_config.mist_uri }}/api/v1/jobs/{{ ctx.instance.runtime_properties.job_id }}?action=cloud_init_finished&machine_name={{ ctx.instance.runtime_properties.machine_name }}
-
+      {{ ctx.node.properties.mist_config.mist_uri }}/api/v1/jobs/{{ ctx.instance.runtime_properties.job_id }}?output=${OUTPUT}&action=cloud_init_finished&machine_name={{ ctx.instance.runtime_properties.machine_name }}
