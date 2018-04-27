@@ -130,7 +130,7 @@ node_types:
             node_type:
               default: 'master'
         configure:
-          implementation: tasks/install_kubernetes.py
+          implementation: tasks/configure.py
           inputs:
             start_retry_interval:
               description: Polling interval until the server is active (in seconds)
@@ -179,7 +179,7 @@ node_types:
             node_type:
               default: 'worker'
         configure:
-          implementation: tasks/install_kubernetes.py
+          implementation: tasks/configure.py
           inputs:
             start_retry_interval:
               description: Polling interval until the server is active (in seconds)
