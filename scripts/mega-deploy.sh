@@ -754,6 +754,7 @@ init_ssl_certs_coreos_master
 mkdir -p /etc/systemd/system/etcd2.service.d
 cat << EOF > /etc/systemd/system/etcd2.service.d/40-listen-address.conf
 [Service]
+Environment=ETCD_LISTEN_PEER_URLS=http://0.0.0.0:2380
 Environment=ETCD_LISTEN_CLIENT_URLS=http://0.0.0.0:2379
 Environment=ETCD_ADVERTISE_CLIENT_URLS=http://${ADVERTISE_IP}:2379
 EOF
@@ -1197,8 +1198,24 @@ install_master_ubuntu_centos() {
 mkdir -p /etc/kubernetes/auth
 echo "$AUTH_PASSWORD,$AUTH_USERNAME,1" > /etc/kubernetes/auth/basicauth.csv
 
+# Work-around for https://github.com/kubernetes/kubernetes/issues/57709. Force
+# ETCD to use the correct IP address.
+cat <<EOF > /etc/kubernetes/admin.yaml
+apiVersion: kubeadm.k8s.io/v1alpha1
+kind: MasterConfiguration
+
+api:
+  bindPort: 443
+
+etcd:
+  extraArgs:
+    'listen-peer-urls': 'http://127.0.0.1:2380'
+
+token: $TOKEN
+EOF
+
 # Initialize kubeadm
-kubeadm init --token "$TOKEN" --apiserver-bind-port 443
+kubeadm init --config /etc/kubernetes/admin.yaml
 sysctl net.bridge.bridge-nf-call-iptables=1
 
 # Wait for kube-apiserver to be up and running
@@ -1241,8 +1258,6 @@ until $(curl --output /dev/null --silent --head --insecure https://localhost:443
     printf '.'
     sleep 5
 done
-
-
 
 # Deploy kubernetes dashboard
 cat <<EOF > /etc/kubernetes/kubernetes-dashboard.yaml
