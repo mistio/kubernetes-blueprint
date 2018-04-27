@@ -1409,14 +1409,16 @@ cat <<EOF > /etc/kubernetes/dashboard-rbac.yaml
 kind: ClusterRoleBinding
 apiVersion: rbac.authorization.k8s.io/v1beta1
 metadata:
-  name: dashboard-admin
+  labels:
+    k8s-app: kubernetes-dashboard
+  name: kubernetes-dashboard
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
   name: cluster-admin
 subjects:
 - kind: ServiceAccount
-  name: default
+  name: kubernetes-dashboard
   namespace: kube-system
 EOF
 kubectl --kubeconfig /etc/kubernetes/admin.conf apply -f /etc/kubernetes/dashboard-rbac.yaml
