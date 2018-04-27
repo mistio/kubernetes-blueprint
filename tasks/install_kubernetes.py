@@ -70,6 +70,7 @@ def configure_kubernetes_master():
 
     # Master node's IP address.
     ctx.instance.runtime_properties['master_ip'] = ips[0]
+    ctx.instance.runtime_properties['server_ip'] = ips[-1]
 
     # Token for secure master-worker communication.
     token = '%s.%s' % (random_string(length=6), random_string(length=16))
