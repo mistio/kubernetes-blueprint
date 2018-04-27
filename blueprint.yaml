@@ -334,7 +334,7 @@ outputs:
     description: Kubernetes cluster-info command
     value:
       command: { concat: [ 'kubectl --insecure-skip-tls-verify
-                           --server="https://', { get_attribute: [ kube_master, ip ] },
+                           --server="https://', { get_attribute: [ kube_master, server_ip ] },
                            '" --username="', { get_attribute: [ kube_master, auth_user ] },
                            '" --password="', { get_attribute: [ kube_master, auth_pass ] },
                            '" cluster-info' ] }
@@ -342,7 +342,7 @@ outputs:
     description: Kubernetes dashboard URL
     value:
       command: { concat: [ 'kubectl --insecure-skip-tls-verify
-                           --server="https://', { get_attribute: [ kube_master, ip ] },
+                           --server="https://', { get_attribute: [ kube_master, server_ip ] },
                            '" --username="', { get_attribute: [ kube_master, auth_user ] },
                            '" --password="', { get_attribute: [ kube_master, auth_pass ] },
                            '" proxy' ] }
