@@ -89,7 +89,7 @@ def scale_cluster_up(quantity):
     job = cloud.create_machine(async=True, name=machine_name, key=key,
                                quantity=quantity, **kwargs)
 
-    job_id = job.json()['job_id']
+    job_id = job['job_id']
     job = client.get_job(job_id)
     started_at = time.time()
 
