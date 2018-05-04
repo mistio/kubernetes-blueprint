@@ -1218,6 +1218,8 @@ EOF
 kubeadm init --config /etc/kubernetes/admin.yaml
 sysctl net.bridge.bridge-nf-call-iptables=1
 
+sleep 120
+
 # Wait for kube-apiserver to be up and running
 until $(curl --output /dev/null --silent --head --insecure https://localhost:443); do
     printf '.'
