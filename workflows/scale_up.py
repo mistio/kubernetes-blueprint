@@ -215,7 +215,7 @@ if __name__ == '__main__':
     worker_instance.execute_operation(
         operation='cloudify.interfaces.lifecycle.create',
         kwargs={
-            'minion_id': machine_id,
+            'minion_id': 'aaaaa',  # machine_id,
         },
         allow_kwargs_override=True
     )
@@ -223,7 +223,7 @@ if __name__ == '__main__':
     worker_instance.execute_operation(
         operation='cloudify.interfaces.lifecycle.configure',
         kwargs={
-            'minion_id': machine_id,
+            'minion_id': 'aaaaa',  # machine_id,
         },
         allow_kwargs_override=True
     )
