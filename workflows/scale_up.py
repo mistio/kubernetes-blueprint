@@ -201,7 +201,9 @@ if __name__ == '__main__':
 
     if not delta:
         workctx.logger.info('Delta parameter equals 0! No scaling will take place')
-        return
+        import sys
+        sys.exit(0)
+        #return
 
     # scale(delta)
 
