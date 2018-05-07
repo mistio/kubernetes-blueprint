@@ -207,6 +207,10 @@ if __name__ == '__main__':
 
     # scale(delta)
 
+    workctx.logger.error('&&&&&&&&&&&&&&&&&&&')
+    workctx.logger.error('WorkCtxInputs: %s', inputs
+    workctx.logger.error('&&&&&&&&&&&&&&&&&&&')
+
     #
     worker_node = workctx.get_node('kube_worker')
     worker_instance = [instance for instance in worker_node.instances][0]
