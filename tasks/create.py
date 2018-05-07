@@ -144,4 +144,4 @@ if __name__ == '__main__':
 
         ctx.instance.runtime_properties['master_ip'] = ips[0]
     else:
-        create_machine(ctx.node.properties.copy(), node_type='worker')
+        create_machine(node_properties, node_type='worker')

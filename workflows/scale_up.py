@@ -15,6 +15,8 @@ from cloudify.workflows import ctx as workctx
 from cloudify.workflows import parameters as inputs
 from cloudify.exceptions import NonRecoverableError
 
+from plugin.server import create_machine
+
 
 # FIXME
 resource_package = __name__
@@ -188,5 +190,145 @@ def scale_cluster(delta):
         scale_cluster_up(delta)
 
 
-scale_cluster(inputs['delta'])
+#scale_cluster(inputs['delta'])
 
+if __name__ == '__main__':
+    """"""
+    try:
+        delta = int(inputs.get('delta', 1))
+    except ValueError:
+        raise NonRecoverableError()
+
+    if not delta:
+        workctx.logger.info('Delta parameter equals 0! No scaling will take place')
+        return
+
+    # scale(delta)
+
+    #
+    worker_node = workctx.get_node('kube_worker')
+    worker_instance = [instance for instance in worker_node.instances][0]
+
+    # NOTE: This is an asynchronous operation
+    worker_instance.execute_operation(
+        operation='cloudify.interfaces.lifecycle.create',
+        kwargs={
+            'minion_id': machine_id,
+        },
+        allow_kwargs_override=True
+    )
+
+    worker_instance.execute_operation(
+        operation='cloudify.interfaces.lifecycle.configure',
+        kwargs={
+            'minion_id': machine_id,
+        },
+        allow_kwargs_override=True
+    )
+
+    # worker_instance.execute_operation(
+    #     operation='cloudify.interfaces.lifecycle.associate',
+    #     kwargs={'minion_id': machine_id}
+    # )
+
+    workctx.logger.info('Scaling Kubernetes cluster up by %s node(s)', delta)
+
+
+def scale1(quantity):
+    """"""
+    #
+    master = workctx.get_node('kube_master')
+    master_instance = [instance for instance in master.instances][0]
+
+    # Get node directly from local-storage in order to have access to all of
+    # its runtime properties.
+    master_node = LocalStorage.get('kube_master')
+
+    # Private IP of the Kubernetes Master
+    master_ip = master_node.runtime_properties['master_ip']
+    master_token = master_node.runtime_properties['master_token']
+
+    # FIXME Re-think this.
+    mist_client = connection.MistConnectionClient(properties=master.properties)
+    client = mist_client.client
+    cloud = mist_client.cloud
+    master_machine = mist_client.machine
+
+    # # TODO
+    # if inputs.get('use_external_resource', False):
+    #     machine = mist_client.other_machine(inputs)
+
+    node_properties = {}
+
+    #
+    name = generate_name(get_stack_name(), 'worker')
+
+    node_properties['parameters']['name'] = name
+    node_properties['parameters']['quantity'] = quantity
+
+    #
+    for param in ('mist_key', 'mist_network', ):
+        key = param.replace('mist_', '')
+        node_properties['parameters'][key] = inputs.get(param)
+
+    for param in ('mist_size', 'mist_image', 'mist_location', ):
+        key = param.replace('mist_', '') + '_id'
+        node_properties['parameters'][key] = inputs.get(param)
+
+    #
+    create_machine(node_properties, node_type='worker')
+
+    # TODO Move to plugin?
+    #
+    workctx.logger.info('Uploading fresh kubernetes installation script')
+    # If a script_id does not exist in the node instance's runtime
+    # properties, perhaps because this is the first node that is being
+    # configured, load the script from file, upload it to mist.io, and
+    # run it over ssh.
+    script = os.path.join(os.path.dirname(__file__), 'mega-deploy.sh')
+    ctx.download_resource(  # ?????
+        os.path.join('scripts', 'mega-deploy.sh'), script
+    )
+    with open(os.path.abspath(script)) as fobj:
+        script = fobj.read()
+    script = client.add_script(
+        name='install_kubernetes_%s' % random_string(length=4),
+        script=script, location_type='inline', exec_type='executable'
+    )
+    master_node.instance.runtime_properties['script_id'] = script['id']
+
+    # TODO Move to plugin?
+    # Get master node from relationships schema.
+    ctx.instance.runtime_properties.update({
+        'script_id': master_node.runtime_properties.get('script_id', ''),
+        'master_ip': master_node.runtime_properties.get('master_ip', ''),
+        'master_token': master_node.runtime_properties.get('master_token', ''),
+    })
+
+    ctx.logger.info('Setting up kubernetes worker')
+
+    ctx.logger.info('Configuring kubernetes node')
+
+    # Prepare script parameters.
+    script_params = "-m '%s' " % master_node.instance.runtime_properties['master_ip']
+    script_params += "-t '%s' " % master_node.instance.runtime_properties['master_token']
+    script_params += "-r 'node'"
+
+    # Run the script.
+    script = client.run_script(
+        script_id=master_node.instance.runtime_properties['script_id'], su=True,
+        machine_id=machine.id,
+        cloud_id=machine.cloud.id,
+        script_params=script_params,
+    )
+    master_node.instance.runtime_properties['job_id'] = script['job_id']
+
+    #
+    wait_for_event(
+        job_id=master_node.instance.runtime_properties['job_id'],
+        job_kwargs={
+            'action': 'script_finished',
+            'machine_id': master_node.instance.runtime_properties['machine_id'],
+        }
+    )
+    ctx.logger.info('Kubernetes installation succeeded!')
