@@ -195,7 +195,7 @@ def scale_cluster(delta):
 if __name__ == '__main__':
     """"""
     try:
-        delta = int(inputs.get('delta', 1))
+        delta = int(inputs.get('delta', 0))
     except ValueError:
         raise NonRecoverableError()
 
@@ -214,17 +214,13 @@ if __name__ == '__main__':
     # NOTE: This is an asynchronous operation
     worker_instance.execute_operation(
         operation='cloudify.interfaces.lifecycle.create',
-        kwargs={
-            'minion_id': 'aaaaa',  # machine_id,
-        },
+        kwargs=inputs,
         allow_kwargs_override=True
     )
 
     worker_instance.execute_operation(
         operation='cloudify.interfaces.lifecycle.configure',
-        kwargs={
-            'minion_id': 'aaaaa',  # machine_id,
-        },
+        kwargs=inputs,
         allow_kwargs_override=True
     )
 
