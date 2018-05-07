@@ -218,13 +218,27 @@ if __name__ == '__main__':
     # NOTE: This is an asynchronous operation
     worker_instance.execute_operation(
         operation='cloudify.interfaces.lifecycle.create',
-        kwargs=inputs,
+        kwargs={
+            'cloud_id': inputs.get('mist_cloud', ''),
+            'image_id': inputs.get('mist_image', ''),
+            'size_id': inputs.get('mist_size', ''),
+            'location_id': inputs.get('mist_location'),
+            'networks': inputs.get('mist_networks', []),
+            'key': inputs.get('mist_key', ''),
+        },
         allow_kwargs_override=True
     )
 
     worker_instance.execute_operation(
         operation='cloudify.interfaces.lifecycle.configure',
-        kwargs=inputs,
+        kwargs={
+            'cloud_id': inputs.get('mist_cloud', ''),
+            'image_id': inputs.get('mist_image', ''),
+            'size_id': inputs.get('mist_size', ''),
+            'location_id': inputs.get('mist_location'),
+            'networks': inputs.get('mist_networks', []),
+            'key': inputs.get('mist_key', ''),
+        },
         allow_kwargs_override=True
     )
 
