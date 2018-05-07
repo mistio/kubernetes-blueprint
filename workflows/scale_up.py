@@ -208,7 +208,7 @@ if __name__ == '__main__':
     # scale(delta)
 
     workctx.logger.error('&&&&&&&&&&&&&&&&&&&')
-    workctx.logger.error('WorkCtxInputs: %s', inputs
+    workctx.logger.error('WorkCtxInputs: %s', inputs)
     workctx.logger.error('&&&&&&&&&&&&&&&&&&&')
 
     #
