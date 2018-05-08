@@ -192,67 +192,6 @@ def scale_cluster(delta):
 
 #scale_cluster(inputs['delta'])
 
-if __name__ == '__main__':
-    """"""
-    try:
-        delta = int(inputs.get('delta', 0))
-    except ValueError:
-        raise NonRecoverableError()
-
-    if not delta:
-        workctx.logger.info('Delta parameter equals 0! No scaling will take place')
-        import sys
-        sys.exit(0)
-        #return
-
-    scale_new()
-    sys.exit(0)
-
-    # scale(delta)
-
-    workctx.logger.error('&&&&&&&&&&&&&&&&&&&')
-    workctx.logger.error('WorkCtxInputs: %s', inputs)
-    workctx.logger.error('&&&&&&&&&&&&&&&&&&&')
-
-    #
-    worker_node = workctx.get_node('kube_worker')
-    worker_instance = [instance for instance in worker_node.instances][0]
-
-    # NOTE: This is an asynchronous operation
-    worker_instance.execute_operation(
-        operation='cloudify.interfaces.lifecycle.create',
-        kwargs={
-            'cloud_id': inputs.get('mist_cloud', ''),
-            'image_id': inputs.get('mist_image', ''),
-            'size_id': inputs.get('mist_size', ''),
-            'location_id': inputs.get('mist_location'),
-            'networks': inputs.get('mist_networks', []),
-            'key': inputs.get('mist_key', ''),
-        },
-        allow_kwargs_override=True
-    )
-
-    worker_instance.execute_operation(
-        operation='cloudify.interfaces.lifecycle.configure',
-        kwargs={
-            'cloud_id': inputs.get('mist_cloud', ''),
-            'image_id': inputs.get('mist_image', ''),
-            'size_id': inputs.get('mist_size', ''),
-            'location_id': inputs.get('mist_location'),
-            'networks': inputs.get('mist_networks', []),
-            'key': inputs.get('mist_key', ''),
-        },
-        allow_kwargs_override=True
-    )
-
-    # worker_instance.execute_operation(
-    #     operation='cloudify.interfaces.lifecycle.associate',
-    #     kwargs={'minion_id': machine_id}
-    # )
-
-    workctx.logger.info('Scaling Kubernetes cluster up by %s node(s)', delta)
-
-
 def scale_new(**kwargs):
     ctx = workctx
 
@@ -316,6 +255,67 @@ def scale_new(**kwargs):
         raise
     else:
         modification.finish()
+
+
+if __name__ == '__main__':
+    """"""
+    try:
+        delta = int(inputs.get('delta', 0))
+    except ValueError:
+        raise NonRecoverableError()
+
+    if not delta:
+        workctx.logger.info('Delta parameter equals 0! No scaling will take place')
+        import sys
+        sys.exit(0)
+        #return
+
+    scale_new()
+    sys.exit(0)
+
+    # scale(delta)
+
+    workctx.logger.error('&&&&&&&&&&&&&&&&&&&')
+    workctx.logger.error('WorkCtxInputs: %s', inputs)
+    workctx.logger.error('&&&&&&&&&&&&&&&&&&&')
+
+    #
+    worker_node = workctx.get_node('kube_worker')
+    worker_instance = [instance for instance in worker_node.instances][0]
+
+    # NOTE: This is an asynchronous operation
+    worker_instance.execute_operation(
+        operation='cloudify.interfaces.lifecycle.create',
+        kwargs={
+            'cloud_id': inputs.get('mist_cloud', ''),
+            'image_id': inputs.get('mist_image', ''),
+            'size_id': inputs.get('mist_size', ''),
+            'location_id': inputs.get('mist_location'),
+            'networks': inputs.get('mist_networks', []),
+            'key': inputs.get('mist_key', ''),
+        },
+        allow_kwargs_override=True
+    )
+
+    worker_instance.execute_operation(
+        operation='cloudify.interfaces.lifecycle.configure',
+        kwargs={
+            'cloud_id': inputs.get('mist_cloud', ''),
+            'image_id': inputs.get('mist_image', ''),
+            'size_id': inputs.get('mist_size', ''),
+            'location_id': inputs.get('mist_location'),
+            'networks': inputs.get('mist_networks', []),
+            'key': inputs.get('mist_key', ''),
+        },
+        allow_kwargs_override=True
+    )
+
+    # worker_instance.execute_operation(
+    #     operation='cloudify.interfaces.lifecycle.associate',
+    #     kwargs={'minion_id': machine_id}
+    # )
+
+    workctx.logger.info('Scaling Kubernetes cluster up by %s node(s)', delta)
 
 
 def scale_old(quantity):
