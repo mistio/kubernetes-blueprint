@@ -12,7 +12,7 @@ from plugin.utils import get_stack_name, generate_name, random_string
 from plugin.constants import CREATE_TIMEOUT, SCRIPT_TIMEOUT
 
 #from cloudify.workflows import ctx as workctx
-from cloudify.workflows import parameters as inputs
+#from cloudify.workflows import parameters as inputs
 from cloudify.exceptions import NonRecoverableError
 
 from plugin.server import create_machine
@@ -265,10 +265,6 @@ def scale_new(**kwargs):
 
 if __name__ == '__main__':
     """"""
-    try:
-        delta = int(inputs.get('delta', 0))
-    except ValueError:
-        raise NonRecoverableError()
 
     #if not delta:
     #    workctx.logger.info('Delta parameter equals 0! No scaling will take place')
@@ -286,14 +282,17 @@ if __name__ == '__main__':
     storage = LocalStorage()
     new_instance = storage.add_node_instance('kube_worker')
 
+    from cloudify.workflows import parameters as inputs
+    try:
+        delta = int(inputs.get('delta', 0))
+    except ValueError:
+        raise NonRecoverableError()
+
     from cloudify.workflows import ctx as workctx
 
     #
     worker_node = workctx.get_node('kube_worker')
     worker_instances = [instance for instance in worker_node.instances]
-
-    new_node_instance = workctx.get_node_instance(new_instance['id'])
-    workctx.logger.info('@@@@@@@@ %s', new_node_instance)
 
     for instance in worker_instances:
         workctx.logger.info('************ %s: %s', instance.id, new_instance)
