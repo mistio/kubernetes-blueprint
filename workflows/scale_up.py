@@ -11,7 +11,7 @@ from plugin.utils import LocalStorage
 from plugin.utils import get_stack_name, generate_name, random_string
 from plugin.constants import CREATE_TIMEOUT, SCRIPT_TIMEOUT
 
-from cloudify.workflows import ctx as workctx
+#from cloudify.workflows import ctx as workctx
 from cloudify.workflows import parameters as inputs
 from cloudify.exceptions import NonRecoverableError
 
@@ -38,6 +38,8 @@ except IOError:
 
 
 def scale_cluster_up(quantity):
+    from cloudify.workflows import ctx as workctx
+
     master = workctx.get_node('kube_master')
     master_instance = [instance for instance in master.instances][0]
     # Get node directly from local-storage in order to have access to all of
@@ -177,6 +179,8 @@ def scale_cluster_up(quantity):
 
 
 def scale_cluster(delta):
+    from cloudify.workflows import ctx as workctx
+
     if isinstance(delta, basestring):
         delta = int(delta)
 
@@ -193,6 +197,8 @@ def scale_cluster(delta):
 #scale_cluster(inputs['delta'])
 
 def scale_new(**kwargs):
+    from cloudify.workflows import ctx as workctx
+
     ctx = workctx
 
     new_number_of_instances = 5
@@ -264,21 +270,23 @@ if __name__ == '__main__':
     except ValueError:
         raise NonRecoverableError()
 
-    if not delta:
-        workctx.logger.info('Delta parameter equals 0! No scaling will take place')
-        import sys
-        sys.exit(0)
-        #return
+    #if not delta:
+    #    workctx.logger.info('Delta parameter equals 0! No scaling will take place')
+    #    import sys
+    #    sys.exit(0)
+    #    #return
 
     # scale(delta)
 
-    workctx.logger.error('&&&&&&&&&&&&&&&&&&&')
-    workctx.logger.error('WorkCtxInputs: %s', inputs)
-    workctx.logger.error('&&&&&&&&&&&&&&&&&&&')
+    #workctx.logger.error('&&&&&&&&&&&&&&&&&&&')
+    #workctx.logger.error('WorkCtxInputs: %s', inputs)
+    #workctx.logger.error('&&&&&&&&&&&&&&&&&&&')
 
     #
     storage = LocalStorage()
     new_instance = storage.add_node_instance('kube_worker')
+
+    from cloudify.workflows import ctx as workctx
 
     #
     worker_node = workctx.get_node('kube_worker')
