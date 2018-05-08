@@ -282,53 +282,53 @@ if __name__ == '__main__':
     storage = LocalStorage()
     new_instance = storage.add_node_instance('kube_worker')
 
-    #from cloudify.workflows import parameters as inputs
-    #try:
-    #    delta = int(inputs.get('delta', 0))
-    #except ValueError:
-    #    raise NonRecoverableError()
+    from cloudify.workflows import parameters as inputs
+    try:
+        delta = int(inputs.get('delta', 0))
+    except ValueError:
+        raise NonRecoverableError()
 
-    #from cloudify.workflows import ctx as workctx
-    from cloudify.state import CurrentContext
-    workctx = CurrentContext().get_ctx()
+    from cloudify.workflows import ctx as workctx
 
     #
     worker_node = workctx.get_node('kube_worker')
-    worker_instances = [instance for instance in worker_node.instances]
+    worker_instance = [instance for instance in worker_node.instances][0]
 
-    for instance in worker_instances:
-        workctx.logger.info('************ %s: %s', instance.id, new_instance)
-        if instance.id == new_instance['id']:
-            break
-    else:
-        raise Exception('!!!!')
+    copied_worker_instance = storage.copy_node_instance(worker_instance.id)
 
-    ## NOTE: This is an asynchronous operation
-    #instance.execute_operation(
-    #    operation='cloudify.interfaces.lifecycle.create',
-    #    kwargs={
-    #        'cloud_id': inputs.get('mist_cloud', ''),
-    #        'image_id': inputs.get('mist_image', ''),
-    #        'size_id': inputs.get('mist_size', ''),
-    #        'location_id': inputs.get('mist_location'),
-    #        'networks': inputs.get('mist_networks', []),
-    #        'key': inputs.get('mist_key', ''),
-    #    },
-    #    allow_kwargs_override=True
-    #)
+    #for instance in worker_instances:
+    #    workctx.logger.info('************ %s: %s', instance.id, new_instance)
+    #    if instance.id == new_instance['id']:
+    #        break
+    #else:
+    #    raise Exception('!!!!')
 
-    #instance.execute_operation(
-    #    operation='cloudify.interfaces.lifecycle.configure',
-    #    kwargs={
-    #        'cloud_id': inputs.get('mist_cloud', ''),
-    #        'image_id': inputs.get('mist_image', ''),
-    #        'size_id': inputs.get('mist_size', ''),
-    #        'location_id': inputs.get('mist_location'),
-    #        'networks': inputs.get('mist_networks', []),
-    #        'key': inputs.get('mist_key', ''),
-    #    },
-    #    allow_kwargs_override=True
-    #)
+    # NOTE: This is an asynchronous operation
+    worker_instance.execute_operation(
+        operation='cloudify.interfaces.lifecycle.create',
+        kwargs={
+            'cloud_id': inputs.get('mist_cloud', ''),
+            'image_id': inputs.get('mist_image', ''),
+            'size_id': inputs.get('mist_size', ''),
+            'location_id': inputs.get('mist_location'),
+            'networks': inputs.get('mist_networks', []),
+            'key': inputs.get('mist_key', ''),
+        },
+        allow_kwargs_override=True
+    )
+
+    worker_instance.execute_operation(
+        operation='cloudify.interfaces.lifecycle.configure',
+        kwargs={
+            'cloud_id': inputs.get('mist_cloud', ''),
+            'image_id': inputs.get('mist_image', ''),
+            'size_id': inputs.get('mist_size', ''),
+            'location_id': inputs.get('mist_location'),
+            'networks': inputs.get('mist_networks', []),
+            'key': inputs.get('mist_key', ''),
+        },
+        allow_kwargs_override=True
+    )
 
     # worker_instance.execute_operation(
     #     operation='cloudify.interfaces.lifecycle.associate',
