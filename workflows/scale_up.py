@@ -282,6 +282,9 @@ if __name__ == '__main__':
     #new_instance = storage.add_node_instance('kube_worker')
     copied_worker_instance = storage.copy_node_instance(worker_instance.id)
 
+    node_instances = workctx.internal.handler.storage.get_node_instances()
+    workctx.logger.error('*********** NODE INSTANCES: %s', node_instances)
+
     #for _ in range(delta):
     # NOTE: This is an asynchronous operation
     worker_instance.execute_operation(
@@ -310,12 +313,7 @@ if __name__ == '__main__':
         allow_kwargs_override=True
     )
 
-    # worker_instance.execute_operation(
-    #     operation='cloudify.interfaces.lifecycle.associate',
-    #     kwargs={'minion_id': machine_id}
-    # )
-
-    workctx.logger.info('Scaling Kubernetes cluster up by %s node(s)', delta)
+    workctx.logger.info('Scaling kubernetes cluster up by %s node(s)', delta)
 
 
 def scale_old(quantity):
