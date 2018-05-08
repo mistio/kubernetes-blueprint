@@ -205,7 +205,7 @@ def scale_new(**kwargs):
 
     modification = ctx.deployment.start_modification({
         node.id: {
-            'instances': number_of_new_instances
+            'instances': new_number_of_instances
         }
     })
 
