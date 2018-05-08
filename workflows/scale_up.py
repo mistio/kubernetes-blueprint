@@ -268,10 +268,10 @@ if __name__ == '__main__':
     try:
         delta = int(inputs.get('delta') or 0)
     except ValueError:
-        return
+        raise RuntimeError()
 
     if not delta:
-        return
+        raise RuntimeError()
 
     #
     #storage = LocalStorage()
