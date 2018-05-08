@@ -11,8 +11,8 @@ from plugin.utils import LocalStorage
 from plugin.utils import get_stack_name, generate_name, random_string
 from plugin.constants import CREATE_TIMEOUT, SCRIPT_TIMEOUT
 
-#from cloudify.workflows import ctx as workctx
-#from cloudify.workflows import parameters as inputs
+from cloudify.workflows import ctx as workctx
+from cloudify.workflows import parameters as inputs
 from cloudify.exceptions import NonRecoverableError
 
 from plugin.server import create_machine
@@ -265,44 +265,24 @@ def scale_new(**kwargs):
 
 if __name__ == '__main__':
     """"""
+    try:
+        delta = int(inputs.get('delta') or 0)
+    except ValueError:
+        return
 
-    #if not delta:
-    #    workctx.logger.info('Delta parameter equals 0! No scaling will take place')
-    #    import sys
-    #    sys.exit(0)
-    #    #return
-
-    # scale(delta)
-
-    #workctx.logger.error('&&&&&&&&&&&&&&&&&&&')
-    #workctx.logger.error('WorkCtxInputs: %s', inputs)
-    #workctx.logger.error('&&&&&&&&&&&&&&&&&&&')
+    if not delta:
+        return
 
     #
-    storage = LocalStorage()
-    new_instance = storage.add_node_instance('kube_worker')
-
-    from cloudify.workflows import parameters as inputs
-    try:
-        delta = int(inputs.get('delta', 0))
-    except ValueError:
-        raise NonRecoverableError()
-
-    from cloudify.workflows import ctx as workctx
+    #storage = LocalStorage()
+    #new_instance = storage.add_node_instance('kube_worker')
+    copied_worker_instance = storage.copy_node_instance(worker_instance.id)
 
     #
     worker_node = workctx.get_node('kube_worker')
     worker_instance = [instance for instance in worker_node.instances][0]
 
-    copied_worker_instance = storage.copy_node_instance(worker_instance.id)
-
-    #for instance in worker_instances:
-    #    workctx.logger.info('************ %s: %s', instance.id, new_instance)
-    #    if instance.id == new_instance['id']:
-    #        break
-    #else:
-    #    raise Exception('!!!!')
-
+    #for _ in range(delta):
     # NOTE: This is an asynchronous operation
     worker_instance.execute_operation(
         operation='cloudify.interfaces.lifecycle.create',
