@@ -205,6 +205,9 @@ if __name__ == '__main__':
         sys.exit(0)
         #return
 
+    scale_new()
+    sys.exit(0)
+
     # scale(delta)
 
     workctx.logger.error('&&&&&&&&&&&&&&&&&&&')
@@ -250,7 +253,72 @@ if __name__ == '__main__':
     workctx.logger.info('Scaling Kubernetes cluster up by %s node(s)', delta)
 
 
-def scale1(quantity):
+def scale_new(**kwargs):
+    ctx = workctx
+
+    new_number_of_instances = 5
+
+    node_id = 'kube_worker'
+    node = ctx.get_node(node_id)
+    if node.number_of_instances == new_number_of_instances:
+        # no change is required
+        return
+
+    modification = ctx.deployment.start_modification({
+        node.id: {
+            'instances': number_of_new_instances
+        }
+    })
+
+    going_up = node.number_of_instances < new_number_of_instances
+    try:
+        if going_up:
+            # added.node_instances returns all node instances that are
+            # affected by the increasing a node's number of instances.
+            # Some are newly added and have their
+            # instance.modification == 'added'.
+            # Others are node instances that have new relationships
+            # to the added node instances.
+            added_and_related = modification.added.node_instances
+
+            ctx.logger.info('********* Added_And_Related instances', added_and_related)
+
+            for instance in added_and_related:
+                if instance.modification == 'added':
+                    # do stuff
+                    ctx.logger.info('********* Going up! Added instances!')
+                    pass
+                else:
+                    # do other stuff
+                    ctx.logger.info('********* Going up! ...')
+                    pass
+        else:
+            # removed.node_instances returns all node instances that are
+            # affected by the decreasing a node's number of instances.
+            # Some are removed and have their
+            # instance.modification == 'removed'.
+            # Others are node instances that will have relationships
+            # to the removed node instances removed after calling
+            # modification.finish().
+            for instance in removed_and_related:
+                if instance.modification == 'removed':
+                    # do stuff
+                    ctx.logger.info('********* Going down! Removed instances!')
+                    pass
+                else:
+                    # do other stuff
+                    ctx.logger.info('********* Going down! ...')
+                    pass
+    except:
+        # Do stuff to restore the logical state and then
+        # call this to restore that storage state
+        modification.rollback()
+        raise
+    else:
+        modification.finish()
+
+
+def scale_old(quantity):
     """"""
     #
     master = workctx.get_node('kube_master')
