@@ -282,11 +282,11 @@ if __name__ == '__main__':
     storage = LocalStorage()
     new_instance = storage.add_node_instance('kube_worker')
 
-    from cloudify.workflows import parameters as inputs
-    try:
-        delta = int(inputs.get('delta', 0))
-    except ValueError:
-        raise NonRecoverableError()
+    #from cloudify.workflows import parameters as inputs
+    #try:
+    #    delta = int(inputs.get('delta', 0))
+    #except ValueError:
+    #    raise NonRecoverableError()
 
     #from cloudify.workflows import ctx as workctx
     from cloudify.state import CurrentContext
