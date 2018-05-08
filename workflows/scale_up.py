@@ -288,7 +288,9 @@ if __name__ == '__main__':
     except ValueError:
         raise NonRecoverableError()
 
-    from cloudify.workflows import ctx as workctx
+    #from cloudify.workflows import ctx as workctx
+    from cloudify.state import CurrentContext
+    workctx = CurrentContext().get_ctx()
 
     #
     worker_node = workctx.get_node('kube_worker')
