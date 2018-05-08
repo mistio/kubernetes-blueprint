@@ -286,6 +286,7 @@ if __name__ == '__main__':
 
     for instance in worker_instances:
         if instance.id == new_instance['id']:
+            workctx.logger.info('************ %s: %s', instance.id, new_instance)
             break
     else:
         raise Exception('!!!!')
