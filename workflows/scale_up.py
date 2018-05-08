@@ -274,13 +274,13 @@ if __name__ == '__main__':
         raise RuntimeError()
 
     #
+    worker_node = workctx.get_node('kube_worker')
+    worker_instance = [instance for instance in worker_node.instances][0]
+
+    #
     storage = LocalStorage()
     #new_instance = storage.add_node_instance('kube_worker')
     copied_worker_instance = storage.copy_node_instance(worker_instance.id)
-
-    #
-    worker_node = workctx.get_node('kube_worker')
-    worker_instance = [instance for instance in worker_node.instances][0]
 
     #for _ in range(delta):
     # NOTE: This is an asynchronous operation
