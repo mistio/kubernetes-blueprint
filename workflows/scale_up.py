@@ -285,8 +285,8 @@ if __name__ == '__main__':
     worker_instances = [instance for instance in worker_node.instances]
 
     for instance in worker_instances:
+        workctx.logger.info('************ %s: %s', instance.id, new_instance)
         if instance.id == new_instance['id']:
-            workctx.logger.info('************ %s: %s', instance.id, new_instance)
             break
     else:
         raise Exception('!!!!')
