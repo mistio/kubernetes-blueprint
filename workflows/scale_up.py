@@ -274,7 +274,7 @@ if __name__ == '__main__':
         raise RuntimeError()
 
     #
-    #storage = LocalStorage()
+    storage = LocalStorage()
     #new_instance = storage.add_node_instance('kube_worker')
     copied_worker_instance = storage.copy_node_instance(worker_instance.id)
 
