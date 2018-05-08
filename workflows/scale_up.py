@@ -292,7 +292,7 @@ if __name__ == '__main__':
     worker_node = workctx.get_node('kube_worker')
     worker_instances = [instance for instance in worker_node.instances]
 
-    new_node_instance = get_node_instance(new_instance['id'])
+    new_node_instance = workctx.get_node_instance(new_instance['id'])
     workctx.logger.info('@@@@@@@@ %s', new_node_instance)
 
     for instance in worker_instances:
