@@ -14,8 +14,8 @@ from plugin.connection import MistConnectionClient
 
 if __name__ == '__main__':
     """"""
-    storage = LocalStorage()
-    storage.copy_node_instance(worker_instance.id)
+    #storage = LocalStorage()
+    #storage.copy_node_instance(worker_instance.id)
 
     # FIXME Re-think this.
     conn = MistConnectionClient()
