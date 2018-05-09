@@ -3,6 +3,7 @@ import os
 from cloudify import ctx
 
 from plugin import constants
+from plugin.utils import LocalStorage
 from plugin.utils import generate_name
 from plugin.utils import get_stack_name
 from plugin.utils import wait_for_event
@@ -13,6 +14,9 @@ from plugin.connection import MistConnectionClient
 
 if __name__ == '__main__':
     """"""
+    storage = LocalStorage()
+    storage.copy_node_instance(worker_instance.id)
+
     # FIXME Re-think this.
     conn = MistConnectionClient()
     ctx.instance.runtime_properties['job_id'] = conn.client.job_id
@@ -60,7 +64,7 @@ if __name__ == '__main__':
         script_params += "-r 'node'"
 
         # Run the script.
-        script = client.run_script(
+        script = conn.client.run_script(
             script_id=ctx.instance.runtime_properties['script_id'], su=True,
             machine_id=ctx.instance.runtime_properties['machine_id'],
             cloud_id=ctx.instance.runtime_properties['cloud_id'],
