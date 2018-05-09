@@ -14,8 +14,8 @@ from plugin.connection import MistConnectionClient
 
 if __name__ == '__main__':
     """"""
-    #storage = LocalStorage()
-    #storage.copy_node_instance(worker_instance.id)
+    storage = LocalStorage()
+    storage.copy_node_instance(ctx.instance.id)
 
     # FIXME Re-think this.
     conn = MistConnectionClient()
@@ -59,16 +59,16 @@ if __name__ == '__main__':
         ctx.logger.info('Configuring kubernetes node')
 
         # Prepare script parameters.
-        script_params = "-m '%s' " % ctx.instance.runtime_properties['master_ip']
-        script_params += "-t '%s' " % ctx.instance.runtime_properties['master_token']  # NOQA
-        script_params += "-r 'node'"
+        params = "-m '%s' " % ctx.instance.runtime_properties['master_ip']
+        params += "-t '%s' " % ctx.instance.runtime_properties['master_token']
+        params += "-r 'node'"
 
         # Run the script.
         script = conn.client.run_script(
             script_id=ctx.instance.runtime_properties['script_id'], su=True,
             machine_id=ctx.instance.runtime_properties['machine_id'],
             cloud_id=ctx.instance.runtime_properties['cloud_id'],
-            script_params=script_params,
+            script_params=params,
         )
         wait_for_event(
             job_id=ctx.instance.runtime_properties['job_id'],
