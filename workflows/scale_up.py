@@ -263,6 +263,94 @@ def scale_new(**kwargs):
         modification.finish()
 
 
+def run_operation():  # operation, type_name, operation_kwargs, **kwargs):
+    graph = workctx.graph_mode()
+
+    send_event_starting_tasks = {}
+    send_event_done_tasks = {}
+
+    #
+    delta = 1
+
+    #
+    worker_node = workctx.get_node('kube_worker')
+    worker_instance = [instance for instance in worker_node.instances][0]
+
+    instance = worker_instance
+
+    #
+    #storage = LocalStorage()
+    #storage.copy_node_instance(worker_instance.id)
+
+    #for node in ctx.nodes:
+    #    if type_name in node.type_hierarchy:
+    #        for instance in node.instances:
+
+    for i in range(delta):
+        key = 'node%d' % i
+        send_event_starting_tasks[key] = instance.send_event('Adding node to cluster')
+        send_event_done_tasks[key] = instance.send_event('Node added to cluster')
+
+    #for node in ctx.nodes:
+    #    if type_name in node.type_hierarchy:
+    #        for instance in node.instances:
+
+    for i in range(delta):
+        key = 'node%d' % i
+        sequence = graph.sequence()
+        sequence.add(
+            send_event_starting_tasks[key],
+            #instance.execute_operation(
+            #    operation='cloudify.interfaces.lifecycle.clone',
+            #    kwargs={
+            #        'node_instance_id': worker_instance.id,
+            #    },
+            #),
+            instance.execute_operation(
+                operation='cloudify.interfaces.lifecycle.create',
+                kwargs={
+                    'cloud_id': inputs.get('mist_cloud', ''),
+                    'image_id': inputs.get('mist_image', ''),
+                    'size_id': inputs.get('mist_size', ''),
+                    'location_id': inputs.get('mist_location'),
+                    'networks': inputs.get('mist_networks', []),
+                    'key': inputs.get('mist_key', ''),
+                },
+            ),
+            instance.execute_operation(
+                operation='cloudify.interfaces.lifecycle.configure',
+                kwargs={
+                    'cloud_id': inputs.get('mist_cloud', ''),
+                    'image_id': inputs.get('mist_image', ''),
+                    'size_id': inputs.get('mist_size', ''),
+                    'location_id': inputs.get('mist_location'),
+                    'networks': inputs.get('mist_networks', []),
+                    'key': inputs.get('mist_key', ''),
+                },
+            ),
+            send_event_done_tasks[key],
+        )
+
+    for i in range(delta - 1):
+        instance_one = 'node%d' % (i, )
+        instance_two = 'node%d' % (i + 1)
+        graph.add_dependency(
+            send_event_done_tasks[instance_one]
+            send_event_starting_tasks[instance_two],
+        )
+
+    #for node in ctx.nodes:
+    #    for instance in node.instances:
+    #        for rel in instance.relationships:
+    #
+    #            instance_starting_task = send_event_starting_tasks.get(instance.id)
+    #            target_done_task = send_event_done_tasks.get(rel.target_id)
+    #
+    #            if instance_starting_task and target_done_task:
+
+    return graph.execute()
+
+
 if __name__ == '__main__':
     """"""
     try:
@@ -272,6 +360,9 @@ if __name__ == '__main__':
 
     if not delta:
         raise RuntimeError()
+
+    run_operation()
+    sys.exit(0)
 
     #
     worker_node = workctx.get_node('kube_worker')
