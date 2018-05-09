@@ -270,7 +270,7 @@ def run_operation():  # operation, type_name, operation_kwargs, **kwargs):
     send_event_done_tasks = {}
 
     #
-    delta = 1
+    delta = 2
 
     #
     worker_node = workctx.get_node('kube_worker')
