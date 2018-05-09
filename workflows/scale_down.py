@@ -6,7 +6,7 @@ import requests
 import pkg_resources
 
 from plugin import connection
-from plugin.utils import LocalStorage
+from plugin.utils import LocalStorageOld as LocalStorage
 
 from cloudify.workflows import ctx as workctx
 from cloudify.workflows import parameters as inputs
