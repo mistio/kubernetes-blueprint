@@ -335,7 +335,7 @@ def run_operation():  # operation, type_name, operation_kwargs, **kwargs):
         instance_one = 'node%d' % (i, )
         instance_two = 'node%d' % (i + 1)
         graph.add_dependency(
-            send_event_done_tasks[instance_one]
+            send_event_done_tasks[instance_one],
             send_event_starting_tasks[instance_two],
         )
 
