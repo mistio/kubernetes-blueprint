@@ -286,6 +286,8 @@ def run_operation():  # operation, type_name, operation_kwargs, **kwargs):
     #    if type_name in node.type_hierarchy:
     #        for instance in node.instances:
 
+    from cloudify.workflows.tasks_graph import forkjoin
+
     for i in range(delta):
         key = 'node%d' % i
         send_event_starting_tasks[key] = instance.send_event('Adding node to cluster')
@@ -297,9 +299,7 @@ def run_operation():  # operation, type_name, operation_kwargs, **kwargs):
 
     for i in range(delta):
         key = 'node%d' % i
-        sequence = graph.sequence()
-        sequence.add(
-            send_event_starting_tasks[key],
+        tasks = [
             #instance.execute_operation(
             #    operation='cloudify.interfaces.lifecycle.clone',
             #    kwargs={
@@ -328,6 +328,11 @@ def run_operation():  # operation, type_name, operation_kwargs, **kwargs):
                     'key': inputs.get('mist_key', ''),
                 },
             ),
+        ]
+        sequence = graph.sequence()
+        sequence.add(
+            send_event_starting_tasks[key],
+            forkjoin(*tasks),
             send_event_done_tasks[key],
         )
 
