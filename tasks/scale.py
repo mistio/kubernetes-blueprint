@@ -24,6 +24,13 @@ if __name__ == '__main__':
     #
     node_properties = ctx.node.properties.copy()
 
+    #
+    from cloudify.state import ctx_parameters as params
+    for key in params:
+        if key in node_properties:
+            node_properties[key] = params[key]
+            ctx.logger.info('Added %s=%s to node properties', key, params[key])
+
     # Generate a somewhat random machine name. NOTE that we need the name at
     # this early point in order to be passed into cloud-init, if used, so that
     # we may use it later on to match log entries.
