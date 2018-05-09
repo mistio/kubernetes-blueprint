@@ -282,9 +282,6 @@ if __name__ == '__main__':
     #new_instance = storage.add_node_instance('kube_worker')
     copied_worker_instance = storage.copy_node_instance(worker_instance.id)
 
-    node_instances = workctx.internal.handler.storage.get_node_instances()
-    workctx.logger.error('*********** NODE INSTANCES: %s', node_instances)
-
     #for _ in range(delta):
     # NOTE: This is an asynchronous operation
     worker_instance.execute_operation(
