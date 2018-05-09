@@ -196,72 +196,6 @@ def scale_cluster(delta):
 
 #scale_cluster(inputs['delta'])
 
-def scale_new(**kwargs):
-    from cloudify.workflows import ctx as workctx
-
-    ctx = workctx
-
-    new_number_of_instances = 5
-
-    node_id = 'kube_worker'
-    node = ctx.get_node(node_id)
-    if node.number_of_instances == new_number_of_instances:
-        # no change is required
-        return
-
-    modification = ctx.deployment.start_modification({
-        node.id: {
-            'instances': new_number_of_instances
-        }
-    })
-
-    going_up = node.number_of_instances < new_number_of_instances
-    try:
-        if going_up:
-            # added.node_instances returns all node instances that are
-            # affected by the increasing a node's number of instances.
-            # Some are newly added and have their
-            # instance.modification == 'added'.
-            # Others are node instances that have new relationships
-            # to the added node instances.
-            added_and_related = modification.added.node_instances
-
-            ctx.logger.info('********* Added_And_Related instances', added_and_related)
-
-            for instance in added_and_related:
-                if instance.modification == 'added':
-                    # do stuff
-                    ctx.logger.info('********* Going up! Added instances!')
-                    pass
-                else:
-                    # do other stuff
-                    ctx.logger.info('********* Going up! ...')
-                    pass
-        else:
-            # removed.node_instances returns all node instances that are
-            # affected by the decreasing a node's number of instances.
-            # Some are removed and have their
-            # instance.modification == 'removed'.
-            # Others are node instances that will have relationships
-            # to the removed node instances removed after calling
-            # modification.finish().
-            for instance in removed_and_related:
-                if instance.modification == 'removed':
-                    # do stuff
-                    ctx.logger.info('********* Going down! Removed instances!')
-                    pass
-                else:
-                    # do other stuff
-                    ctx.logger.info('********* Going down! ...')
-                    pass
-    except:
-        # Do stuff to restore the logical state and then
-        # call this to restore that storage state
-        modification.rollback()
-        raise
-    else:
-        modification.finish()
-
 
 def run_operation():  # operation, type_name, operation_kwargs, **kwargs):
     graph = workctx.graph_mode()
@@ -270,7 +204,7 @@ def run_operation():  # operation, type_name, operation_kwargs, **kwargs):
     send_event_done_tasks = {}
 
     #
-    delta = 2
+    delta = 1
 
     #
     worker_node = workctx.get_node('kube_worker')
@@ -282,57 +216,27 @@ def run_operation():  # operation, type_name, operation_kwargs, **kwargs):
     #storage = LocalStorage()
     #storage.copy_node_instance(worker_instance.id)
 
-    #for node in ctx.nodes:
-    #    if type_name in node.type_hierarchy:
-    #        for instance in node.instances:
-
-    from cloudify.workflows.tasks_graph import forkjoin
-
     for i in range(delta):
         key = 'node%d' % i
         send_event_starting_tasks[key] = instance.send_event('Adding node to cluster')
         send_event_done_tasks[key] = instance.send_event('Node added to cluster')
 
-    #for node in ctx.nodes:
-    #    if type_name in node.type_hierarchy:
-    #        for instance in node.instances:
-
     for i in range(delta):
         key = 'node%d' % i
-        tasks = [
-            #instance.execute_operation(
-            #    operation='cloudify.interfaces.lifecycle.clone',
-            #    kwargs={
-            #        'node_instance_id': worker_instance.id,
-            #    },
-            #),
-            instance.execute_operation(
-                operation='cloudify.interfaces.lifecycle.create',
-                kwargs={
-                    'cloud_id': inputs.get('mist_cloud', ''),
-                    'image_id': inputs.get('mist_image', ''),
-                    'size_id': inputs.get('mist_size', ''),
-                    'location_id': inputs.get('mist_location'),
-                    'networks': inputs.get('mist_networks', []),
-                    'key': inputs.get('mist_key', ''),
-                },
-            ),
-            instance.execute_operation(
-                operation='cloudify.interfaces.lifecycle.configure',
-                kwargs={
-                    'cloud_id': inputs.get('mist_cloud', ''),
-                    'image_id': inputs.get('mist_image', ''),
-                    'size_id': inputs.get('mist_size', ''),
-                    'location_id': inputs.get('mist_location'),
-                    'networks': inputs.get('mist_networks', []),
-                    'key': inputs.get('mist_key', ''),
-                },
-            ),
-        ]
         sequence = graph.sequence()
         sequence.add(
             send_event_starting_tasks[key],
-            forkjoin(*tasks),
+            instance.execute_operation(
+                operation='cloudify.interfaces.lifecycle.scale',
+                kwargs={
+                    'cloud_id': inputs.get('mist_cloud', ''),
+                    'image_id': inputs.get('mist_image', ''),
+                    'size_id': inputs.get('mist_size', ''),
+                    'location_id': inputs.get('mist_location'),
+                    'networks': inputs.get('mist_networks', []),
+                    'key': inputs.get('mist_key', ''),
+                },
+            ),
             send_event_done_tasks[key],
         )
 
@@ -343,15 +247,6 @@ def run_operation():  # operation, type_name, operation_kwargs, **kwargs):
             send_event_done_tasks[instance_one],
             send_event_starting_tasks[instance_two],
         )
-
-    #for node in ctx.nodes:
-    #    for instance in node.instances:
-    #        for rel in instance.relationships:
-    #
-    #            instance_starting_task = send_event_starting_tasks.get(instance.id)
-    #            target_done_task = send_event_done_tasks.get(rel.target_id)
-    #
-    #            if instance_starting_task and target_done_task:
 
     return graph.execute()
 
@@ -367,44 +262,6 @@ if __name__ == '__main__':
         raise RuntimeError()
 
     run_operation()
-    sys.exit(0)
-
-    #
-    worker_node = workctx.get_node('kube_worker')
-    worker_instance = [instance for instance in worker_node.instances][0]
-
-    #
-    storage = LocalStorage()
-    #new_instance = storage.add_node_instance('kube_worker')
-    copied_worker_instance = storage.copy_node_instance(worker_instance.id)
-
-    #for _ in range(delta):
-    # NOTE: This is an asynchronous operation
-    worker_instance.execute_operation(
-        operation='cloudify.interfaces.lifecycle.create',
-        kwargs={
-            'cloud_id': inputs.get('mist_cloud', ''),
-            'image_id': inputs.get('mist_image', ''),
-            'size_id': inputs.get('mist_size', ''),
-            'location_id': inputs.get('mist_location'),
-            'networks': inputs.get('mist_networks', []),
-            'key': inputs.get('mist_key', ''),
-        },
-        allow_kwargs_override=True
-    )
-
-    worker_instance.execute_operation(
-        operation='cloudify.interfaces.lifecycle.configure',
-        kwargs={
-            'cloud_id': inputs.get('mist_cloud', ''),
-            'image_id': inputs.get('mist_image', ''),
-            'size_id': inputs.get('mist_size', ''),
-            'location_id': inputs.get('mist_location'),
-            'networks': inputs.get('mist_networks', []),
-            'key': inputs.get('mist_key', ''),
-        },
-        allow_kwargs_override=True
-    )
 
     workctx.logger.info('Scaling kubernetes cluster up by %s node(s)', delta)
 
@@ -449,61 +306,3 @@ def scale_old(quantity):
     for param in ('mist_size', 'mist_image', 'mist_location', ):
         key = param.replace('mist_', '') + '_id'
         node_properties['parameters'][key] = inputs.get(param)
-
-    #
-    create_machine(node_properties, node_type='worker')
-
-    # TODO Move to plugin?
-    #
-    workctx.logger.info('Uploading fresh kubernetes installation script')
-    # If a script_id does not exist in the node instance's runtime
-    # properties, perhaps because this is the first node that is being
-    # configured, load the script from file, upload it to mist.io, and
-    # run it over ssh.
-    script = os.path.join(os.path.dirname(__file__), 'mega-deploy.sh')
-    ctx.download_resource(  # ?????
-        os.path.join('scripts', 'mega-deploy.sh'), script
-    )
-    with open(os.path.abspath(script)) as fobj:
-        script = fobj.read()
-    script = client.add_script(
-        name='install_kubernetes_%s' % random_string(length=4),
-        script=script, location_type='inline', exec_type='executable'
-    )
-    master_node.instance.runtime_properties['script_id'] = script['id']
-
-    # TODO Move to plugin?
-    # Get master node from relationships schema.
-    ctx.instance.runtime_properties.update({
-        'script_id': master_node.runtime_properties.get('script_id', ''),
-        'master_ip': master_node.runtime_properties.get('master_ip', ''),
-        'master_token': master_node.runtime_properties.get('master_token', ''),
-    })
-
-    ctx.logger.info('Setting up kubernetes worker')
-
-    ctx.logger.info('Configuring kubernetes node')
-
-    # Prepare script parameters.
-    script_params = "-m '%s' " % master_node.instance.runtime_properties['master_ip']
-    script_params += "-t '%s' " % master_node.instance.runtime_properties['master_token']
-    script_params += "-r 'node'"
-
-    # Run the script.
-    script = client.run_script(
-        script_id=master_node.instance.runtime_properties['script_id'], su=True,
-        machine_id=machine.id,
-        cloud_id=machine.cloud.id,
-        script_params=script_params,
-    )
-    master_node.instance.runtime_properties['job_id'] = script['job_id']
-
-    #
-    wait_for_event(
-        job_id=master_node.instance.runtime_properties['job_id'],
-        job_kwargs={
-            'action': 'script_finished',
-            'machine_id': master_node.instance.runtime_properties['machine_id'],
-        }
-    )
-    ctx.logger.info('Kubernetes installation succeeded!')
