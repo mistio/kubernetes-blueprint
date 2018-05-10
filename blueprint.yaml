@@ -283,7 +283,7 @@ workflows:
         description: The ID of the image to be used for each VM
         type: string
         default: ''
-      mist_size:
+      mist_size_1:
         description: The ID of the VMs' instance type
         type: string
         default: ''

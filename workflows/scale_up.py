@@ -30,7 +30,7 @@ def graph_scale_workflow(delta):
                 kwargs={
                     'cloud_id': inputs.get('mist_cloud', ''),
                     'image_id': inputs.get('mist_image', ''),
-                    'size_id': inputs.get('mist_size', ''),
+                    'size_id': inputs.get('mist_size_1', ''),
                     'location_id': inputs.get('mist_location'),
                     'networks': inputs.get('mist_networks', []),
                     'key': inputs.get('mist_key', ''),
