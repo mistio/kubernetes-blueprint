@@ -37,7 +37,7 @@ def scale_cluster_down(quantity):
     # its runtime_properties
     master_node = LocalStorage.get('kube_master')
     # Public IP of the Kubernetes Master used to remove nodes from the cluster
-    master_ip = master_node.runtime_properties['ip']
+    master_ip = master_node.runtime_properties['master_ip']
     username = master_node.runtime_properties['auth_user']
     password = master_node.runtime_properties['auth_pass']
     # TODO deprecate this! /

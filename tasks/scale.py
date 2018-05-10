@@ -14,6 +14,7 @@ from plugin.connection import MistConnectionClient
 
 if __name__ == '__main__':
     """"""
+    # FIXME HACK:
     storage = LocalStorage()
     storage.copy_node_instance(ctx.instance.id)
 
@@ -53,7 +54,7 @@ if __name__ == '__main__':
     # to use private IP addresses.
     create_machine(node_properties, node_type='worker')
 
-    # FIXME Re-think this.
+    #
     if conn.cloud.provider in constants.CLOUD_INIT_PROVIDERS:
         wait_for_event(
             job_id=ctx.instance.runtime_properties['job_id'],
