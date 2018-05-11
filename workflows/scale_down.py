@@ -2,11 +2,12 @@ import os
 import sys
 import glob
 import json
+import netaddr
 import requests
 import pkg_resources
 
 from plugin import connection
-from plugin.utils import LocalStorage
+from plugin.utils import LocalStorageOld as LocalStorage
 
 from cloudify.workflows import ctx as workctx
 from cloudify.workflows import parameters as inputs
@@ -37,7 +38,7 @@ def scale_cluster_down(quantity):
     # its runtime_properties
     master_node = LocalStorage.get('kube_master')
     # Public IP of the Kubernetes Master used to remove nodes from the cluster
-    master_ip = master_node.runtime_properties['ip']
+    master_ip = master_node.runtime_properties['server_ip']
     username = master_node.runtime_properties['auth_user']
     password = master_node.runtime_properties['auth_pass']
     # TODO deprecate this! /
@@ -49,6 +50,22 @@ def scale_cluster_down(quantity):
     worker_name = inputs.get('worker_name')
     if not worker_name:
         raise NonRecoverableError('Kubernetes Worker\'s name is missing')
+
+    # If the master node does not expose a publicly addressable IP address,
+    # then we cannot connect to it in order to retrieve and verify the list
+    # of nodes and remove them from the cluster. Thus, we raise an exception
+    # in order for it to be logged and seen by the user.
+    if netaddr.IPAddress(master_ip).is_private():
+        raise NonRecoverableError(
+            'Cannot connect to the kubernetes master to automatically remove '
+            'nodes from the cluster, as it seems like the kubernetes master '
+            'only listens at a private IP address. You can manually remove '
+            'nodes by destroying them or by simply removing them from the '
+            'cluster. Nodes can be removed from the cluster (without being '
+            'destroyed) by issuing an HTTP DELETE request at https://%s:%s@%s'
+            '/api/v1/nodes/%s from within the private network of the master '
+            'node' % (username, password, master_ip, worker_name)
+        )
 
     machines = cloud.machines(search=worker_name)
     if not machines:
