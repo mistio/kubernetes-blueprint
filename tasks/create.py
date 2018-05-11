@@ -126,7 +126,8 @@ if __name__ == '__main__':
         prepare_cloud_init()
 
     # Create the nodes. Get the master node's IP address. NOTE that we prefer
-    # to use private IP addresses.
+    # to use private IP addresses for master-worker communication. Public IPs
+    # are used mostly when connecting to the kubernetes API from the outside.
     if ctx.node.properties['master']:
         create_machine(
             name=name,
@@ -141,6 +142,7 @@ if __name__ == '__main__':
             raise NonRecoverableError('No IPs associated with the machine')
 
         ctx.instance.runtime_properties['master_ip'] = ips[0]
+        ctx.instance.runtime_properties['server_ip'] = ips[-1]
     else:
         create_machine(
             name=name,
