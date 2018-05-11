@@ -1,192 +1,59 @@
-import os
-import sys
-import json
-import glob
-import time
-import requests
-import pkg_resources
-
-from plugin import connection
-from plugin.utils import LocalStorage
-from plugin.utils import get_stack_name, generate_name, random_string
-from plugin.constants import CREATE_TIMEOUT, SCRIPT_TIMEOUT
-
 from cloudify.workflows import ctx as workctx
 from cloudify.workflows import parameters as inputs
-from cloudify.exceptions import NonRecoverableError
 
 
-# FIXME
-resource_package = __name__
+def graph_scale_workflow(delta):
+    """Scale up the kubernetes cluster.
 
-try:
-    # This path is for `cfy local` executions
-    resource_path = os.path.join('../scripts', 'mega-deploy.sh')
-    kubernetes_script = pkg_resources.resource_string(resource_package,
-                                                      resource_path)
-except IOError:
-    # This path is for executions performed by Mist.io
-    tmp_dir = os.path.join('/tmp/templates',
-                           'mistio-kubernetes-blueprint-[A-Za-z0-9]*',
-                           'scripts')
-    scripts_dir = glob.glob(tmp_dir)[0]
-    resource_path = os.path.join(scripts_dir, 'mega-deploy.sh')
-    with open(resource_path) as f:
-        kubernetes_script = f.read()
+    This method implements the scale up workflow using the Graph Framework.
 
+    Scaling is based on the `delta` input, which must be greater than 0 for
+    the workflow to run.
 
-def scale_cluster_up(quantity):
-    master = workctx.get_node('kube_master')
-    master_instance = [instance for instance in master.instances][0]
-    # Get node directly from local-storage in order to have access to all of
-    # its runtime properties
-    master_node = LocalStorage.get('kube_master')
-    # Private IP of the Kubernetes Master
-    master_ip = master_node.runtime_properties['master_ip']
-    master_token = master_node.runtime_properties['master_token']
-    # TODO deprecate this! /
-    mist_client = connection.MistConnectionClient(properties=master.properties)
-    client = mist_client.client
-    cloud = mist_client.cloud
-    master_machine = mist_client.machine
-    # /deprecate
+    """
+    graph = workctx.graph_mode()
 
-    # FIXME
-    if inputs.get('use_external_resource', False):
-        machine = mist_client.other_machine(inputs)
+    start_events, done_events = {}, {}
 
-    # Name of the new Kubernetes Worker
-    machine_name = inputs.get('worker_name', '') or generate_name(
-                                                    get_stack_name(), 'worker')
-    machines = cloud.machines(search=machine_name)
-    if len(machines):
-        for m in machines:
-            if m.info['state'] in ['running', 'stopped']:
-                workctx.log.warn('Machine \'%s\' already exists. Will try to '
-                                 'create anyway', machine_name)
+    node = workctx.get_node('kube_worker')
+    instance = [instance for instance in node.instances][0]
 
-    # FIXME improve this! This should not raise a NonRecoverableError. Instead,
-    # we should allow users to add a key and use it
-    if inputs.get('mist_key'):
-        key = client.keys(search=inputs['mist_key'])
-        if len(key):
-            key = key[0]
-        else:
-            raise NonRecoverableError('SSH Key not found')
-    else:
-        raise NonRecoverableError('No SSH Key provided')
+    for i in range(delta):
+        start_events[i] = instance.send_event('Adding node to cluster')
+        done_events[i] = instance.send_event('Node added to cluster')
 
-    # TODO Does this scenario cover all providers?
-    kwargs = {}
-    for param in ['mist_image', 'mist_size', 'mist_location']:
-        if not inputs.get(param):
-            raise NonRecovarableError('Input parameter \'%s\' is required, but '
-                                      'it is missing', param)
-        kwargs['%s_id' % param.split('_')[1]] = inputs[param]
-    kwargs['networks'] = inputs.get('mist_networks', [])
-
-    workctx.logger.info("Deploying %d '%s' node(s)", quantity, machine_name)
-    job = cloud.create_machine(async=True, name=machine_name, key=key,
-                               quantity=quantity, **kwargs)
-
-    job_id = job['job_id']
-    job = client.get_job(job_id)
-    started_at = time.time()
-
-    while True:
-        err = job.get('error')
-        if err:
-            workctx.logger.error('An error occured during machine provisioning')
-            raise NonRecoverableError(err)
-        elif time.time() > started_at + CREATE_TIMEOUT:
-            raise NonRecoverableError('Machine creation is taking too long! '
-                                      'Backing away...')
-        else:
-            pending_machines = quantity
-            created_machines = set()
-            for log in job['logs']:
-                if 'post_deploy_finished' in log.values():
-                    created_machines.add(log['machine_id'])
-                    pending_machines -= 1
-                    if not pending_machines:
-                        break
-            else:
-                workctx.logger.info('Waiting for machine to become '
-                                    'responsive...')
-                time.sleep(10)
-                job = client.get_job(job_id)
-                continue
-        break
-
-    workctx.logger.debug('Re-uploading Kubernetes installation script just '
-                         'in case...')
-    script_name = 'install_kubernetes_%s' % random_string()
-    script = client.add_script(name=script_name, script=kubernetes_script,
-                               location_type='inline', exec_type='executable')
-
-    for machine_id in created_machines:
-        cloud_id = inputs['mist_cloud']
-
-        script_params = "-m '%s' -r 'node' -t '%s'" % (master_ip, master_token)
-        script_id = script['id']
-        workctx.logger.info('Kubernetes Worker installation started for '
-                            'machine with ID \'%s\'', machine_id)
-        script_job = client.run_script(script_id=script_id, cloud_id=cloud_id,
-                                       machine_id=machine_id,
-                                       script_params=script_params, su=True)
-
-        job_id = script_job['job_id']
-        job = client.get_job(job_id)
-        started_at = job['started_at']
-
-        while True:
-            for log in job['logs']:
-                if log['action'] == 'script_finished' and \
-                    log.get('script_id', '') == script_id and \
-                        log.get('machine_id', '') == machine_id:
-                    if not log['error']:
-                        break
-                    # Print entire output only in case an error has occured
-                    _stdout = log['stdout']
-                    _extra_stdout = log['extra_output']
-                    _stdout += _extra_stdout if _extra_stdout else ''
-                    workctx.logger.error(_stdout)
-                    raise NonRecoverableError('Installation of Kubernetes '
-                                              'failed')
-            else:
-                if time.time() > started_at + SCRIPT_TIMEOUT:
-                    raise NonRecoverableError('Kubernetes installation script '
-                                              'is taking too long. Giving up')
-
-                workctx.logger.info('Waiting for Kubernetes installation to '
-                                    'finish')
-                time.sleep(10)
-                job = client.get_job(job_id)
-                continue
-            break
-
-        # NOTE: This is an asynchronous operation
-        master_instance.execute_operation(
-            'cloudify.interfaces.lifecycle.associate',
-            kwargs={'minion_id': machine_id}
+    for i in range(delta):
+        sequence = graph.sequence()
+        sequence.add(
+            start_events[i],
+            instance.execute_operation(
+                operation='cloudify.interfaces.lifecycle.scale',
+            ),
+            instance.execute_operation(
+                operation='cloudify.interfaces.lifecycle.create',
+                kwargs={
+                    'cloud_id': inputs.get('mist_cloud', ''),
+                    'image_id': inputs.get('mist_image', ''),
+                    'size_id': inputs.get('mist_size', ''),
+                    'location_id': inputs.get('mist_location'),
+                    'networks': inputs.get('mist_networks', []),
+                    'key': inputs.get('mist_key', ''),
+                },
+            ),
+            instance.execute_operation(
+                operation='cloudify.interfaces.lifecycle.configure',
+            ),
+            done_events[i],
         )
 
-    workctx.logger.info('Upscaling Kubernetes cluster succeeded')
+    for i in range(delta - 1):
+        graph.add_dependency(start_events[i + 1], done_events[i])
+
+    return graph.execute()
 
 
-def scale_cluster(delta):
-    if isinstance(delta, basestring):
-        delta = int(delta)
-
-    if delta == 0:
-        workctx.logger.info('Delta parameter equals 0! No scaling will '
-                            'take place')
-        return
-    else:
-        workctx.logger.info('Scaling Kubernetes cluster up '
-                            'by %s node(s)', delta)
-        scale_cluster_up(delta)
-
-
-scale_cluster(inputs['delta'])
-
+if __name__ == '__main__':
+    delta = int(inputs.get('delta') or 0)
+    workctx.logger.info('Scaling kubernetes cluster up by %d node(s)', delta)
+    if delta:
+        graph_scale_workflow(delta)

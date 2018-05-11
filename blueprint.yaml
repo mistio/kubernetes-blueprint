@@ -173,6 +173,7 @@ node_types:
         type: cloudify.datatypes.mist.Config
     interfaces:
       cloudify.interfaces.lifecycle:
+        scale: tasks/clone.py
         create:
           implementation: tasks/create.py
           inputs:
