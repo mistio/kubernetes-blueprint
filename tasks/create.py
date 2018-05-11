@@ -135,7 +135,7 @@ if __name__ == '__main__':
     # to use private IP addresses for master-worker communication. Public IPs
     # are used mostly when connecting to the kubernetes API from the outside.
     if ctx.node.properties['master']:
-        create_machine(node_properties, node_type='master')
+        create_machine(node_properties, True, node_type='master')
 
         ips = (ctx.instance.runtime_properties['info']['private_ips'] +
                ctx.instance.runtime_properties['info']['public_ips'])
@@ -146,4 +146,4 @@ if __name__ == '__main__':
         ctx.instance.runtime_properties['master_ip'] = ips[0]
         ctx.instance.runtime_properties['server_ip'] = ips[-1]
     else:
-        create_machine(node_properties, node_type='worker')
+        create_machine(node_properties, True, node_type='worker')
