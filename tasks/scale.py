@@ -49,9 +49,11 @@ if __name__ == '__main__':
         node_properties['parameters']['cloud_init'] = cloud_init
         ctx.instance.runtime_properties['cloud_init'] = cloud_init
 
+    wait_post_deploy = conn.cloud.provider in constants.CLOUD_INIT_PROVIDERS
+
     # Create the nodes. Get the master node's IP address. NOTE that we prefer
     # to use private IP addresses.
-    create_machine(node_properties, node_type='worker')
+    create_machine(node_properties, wait_post_deploy, node_type='worker')
 
     # Wait for machine creation to finish, before moving to configuration step.
     if conn.cloud.provider in constants.CLOUD_INIT_PROVIDERS:
