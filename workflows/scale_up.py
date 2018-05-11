@@ -49,7 +49,7 @@ def graph_scale_workflow(delta):
         )
 
     for i in range(delta - 1):
-        graph.add_dependency(done_events[i], start_events[i + 1])
+        graph.add_dependency(start_events[i + 1], done_events[i])
 
     return graph.execute()
 
