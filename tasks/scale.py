@@ -18,6 +18,8 @@ if __name__ == '__main__':
     storage = LocalStorage()
     storage.copy_node_instance(ctx.instance.id)
 
+    import sys; sys.exit(0)
+
     # FIXME Re-think this.
     conn = MistConnectionClient()
     ctx.instance.runtime_properties['job_id'] = conn.client.job_id

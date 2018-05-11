@@ -19,8 +19,10 @@ def graph_scale_workflow(delta):
     instance = [instance for instance in node.instances][0]
 
     for i in range(delta):
-        start_events[i] = instance.send_event('Adding node to cluster')
-        done_events[i] = instance.send_event('Node added to cluster')
+        # start_events[i] = instance.send_event('Adding node to cluster')
+        # done_events[i] = instance.send_event('Node added to cluster')
+        start_events[i] = workctx.send_event('Adding node to cluster')
+        done_events[i] = workctx.send_event('Node added to cluster')
 
     for i in range(delta):
         sequence = graph.sequence()
@@ -28,6 +30,9 @@ def graph_scale_workflow(delta):
             start_events[i],
             instance.execute_operation(
                 operation='cloudify.interfaces.lifecycle.scale',
+            ),
+            instance.execute_operation(
+                operation='cloudify.interfaces.lifecycle.create',
                 kwargs={
                     'cloud_id': inputs.get('mist_cloud', ''),
                     'image_id': inputs.get('mist_image', ''),
@@ -37,14 +42,14 @@ def graph_scale_workflow(delta):
                     'key': inputs.get('mist_key', ''),
                 },
             ),
+            instance.execute_operation(
+                operation='cloudify.interfaces.lifecycle.configure',
+            ),
             done_events[i],
         )
 
     for i in range(delta - 1):
-        graph.add_dependency(
-            done_events[i],
-            start_events[i + 1],
-        )
+        graph.add_dependency(done_events[i], start_events[i + 1])
 
     return graph.execute()
 
