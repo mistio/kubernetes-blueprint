@@ -112,6 +112,9 @@ if __name__ == '__main__':
     conn = MistConnectionClient()
     ctx.instance.runtime_properties['job_id'] = conn.client.job_id
 
+    # Create a copy of the node's immutable properties in order to update them.
+    node_properties = ctx.node.properties.copy()
+
     # Generate a somewhat random machine name. NOTE that we need the name at
     # this early point in order to be passed into cloud-init, if used, so that
     # we may use it later on to match log entries.
@@ -119,21 +122,20 @@ if __name__ == '__main__':
         get_stack_name(),
         'master' if ctx.node.properties['master'] else 'worker'
     )
+    node_properties['parameters']['name'] = name
     ctx.instance.runtime_properties['machine_name'] = name
 
     # Generate cloud-init, if supported.
     if conn.cloud.provider in constants.CLOUD_INIT_PROVIDERS:
         prepare_cloud_init()
+        cloud_init = ctx.instance.runtime_properties.get('cloud_init', '')
+        node_properties['parameters']['cloud_init'] = cloud_init
 
     # Create the nodes. Get the master node's IP address. NOTE that we prefer
     # to use private IP addresses for master-worker communication. Public IPs
     # are used mostly when connecting to the kubernetes API from the outside.
     if ctx.node.properties['master']:
-        create_machine(
-            name=name,
-            node_type='master',
-            cloud_init=ctx.instance.runtime_properties.get('cloud_init', '')
-        )
+        create_machine(node_properties, node_type='master')
 
         ips = (ctx.instance.runtime_properties['info']['private_ips'] +
                ctx.instance.runtime_properties['info']['public_ips'])
@@ -144,8 +146,4 @@ if __name__ == '__main__':
         ctx.instance.runtime_properties['master_ip'] = ips[0]
         ctx.instance.runtime_properties['server_ip'] = ips[-1]
     else:
-        create_machine(
-            name=name,
-            node_type='worker',
-            cloud_init=ctx.instance.runtime_properties.get('cloud_init', '')
-        )
+        create_machine(node_properties, node_type='worker')
