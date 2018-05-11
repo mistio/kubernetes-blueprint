@@ -131,11 +131,13 @@ if __name__ == '__main__':
         cloud_init = ctx.instance.runtime_properties.get('cloud_init', '')
         node_properties['parameters']['cloud_init'] = cloud_init
 
+    wait_post_deploy = conn.cloud.provider in constants.CLOUD_INIT_PROVIDERS
+
     # Create the nodes. Get the master node's IP address. NOTE that we prefer
     # to use private IP addresses for master-worker communication. Public IPs
     # are used mostly when connecting to the kubernetes API from the outside.
     if ctx.node.properties['master']:
-        create_machine(node_properties, True, node_type='master')
+        create_machine(node_properties, wait_post_deploy, node_type='master')
 
         ips = (ctx.instance.runtime_properties['info']['private_ips'] +
                ctx.instance.runtime_properties['info']['public_ips'])
@@ -146,4 +148,4 @@ if __name__ == '__main__':
         ctx.instance.runtime_properties['master_ip'] = ips[0]
         ctx.instance.runtime_properties['server_ip'] = ips[-1]
     else:
-        create_machine(node_properties, True, node_type='worker')
+        create_machine(node_properties, wait_post_deploy, node_type='worker')
