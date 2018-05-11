@@ -1,6 +1,7 @@
 import os
 
 from cloudify import ctx
+from cloudify.state import ctx_parameters as params
 from cloudify.exceptions import NonRecoverableError
 
 from plugin import constants
@@ -115,6 +116,12 @@ if __name__ == '__main__':
     # Create a copy of the node's immutable properties in order to update them.
     node_properties = ctx.node.properties.copy()
 
+    # Override the node's properties with parameters passed from workflows.
+    for key in params:
+        if key in node_properties['parameters']:
+            node_properties['parameters'][key] = params[key]
+            ctx.logger.info('Added %s=%s to node properties', key, params[key])
+
     # Generate a somewhat random machine name. NOTE that we need the name at
     # this early point in order to be passed into cloud-init, if used, so that
     # we may use it later on to match log entries.
@@ -131,11 +138,16 @@ if __name__ == '__main__':
         cloud_init = ctx.instance.runtime_properties.get('cloud_init', '')
         node_properties['parameters']['cloud_init'] = cloud_init
 
+    # Do not wait for post-deploy-steps to finish in case the configuration
+    # is done using a cloud-init script.
+    wait_post_deploy = conn.cloud.provider in constants.CLOUD_INIT_PROVIDERS
+
     # Create the nodes. Get the master node's IP address. NOTE that we prefer
     # to use private IP addresses for master-worker communication. Public IPs
     # are used mostly when connecting to the kubernetes API from the outside.
+    # TODO Use perhaps the first available IP from the list public + private?
     if ctx.node.properties['master']:
-        create_machine(node_properties, node_type='master')
+        create_machine(node_properties, wait_post_deploy, node_type='master')
 
         ips = (ctx.instance.runtime_properties['info']['private_ips'] +
                ctx.instance.runtime_properties['info']['public_ips'])
@@ -146,4 +158,4 @@ if __name__ == '__main__':
         ctx.instance.runtime_properties['master_ip'] = ips[0]
         ctx.instance.runtime_properties['server_ip'] = ips[-1]
     else:
-        create_machine(node_properties, node_type='worker')
+        create_machine(node_properties, wait_post_deploy, node_type='worker')

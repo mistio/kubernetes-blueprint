@@ -2,11 +2,12 @@ import os
 import sys
 import glob
 import json
+import netaddr
 import requests
 import pkg_resources
 
 from plugin import connection
-from plugin.utils import LocalStorage
+from plugin.utils import LocalStorageOld as LocalStorage
 
 from cloudify.workflows import ctx as workctx
 from cloudify.workflows import parameters as inputs
@@ -37,13 +38,12 @@ def scale_cluster_down(quantity):
     # its runtime_properties
     master_node = LocalStorage.get('kube_master')
     # Public IP of the Kubernetes Master used to remove nodes from the cluster
-    master_ip = master_node.runtime_properties['ip']
+    master_ip = master_node.runtime_properties['server_ip']
     username = master_node.runtime_properties['auth_user']
     password = master_node.runtime_properties['auth_pass']
     # TODO deprecate this! /
     mist_client = connection.MistConnectionClient(properties=master.properties)
     cloud = mist_client.cloud
-    master_machine = mist_client.machine
     # / deprecate
 
     worker_name = inputs.get('worker_name')
@@ -60,12 +60,28 @@ def scale_cluster_down(quantity):
     counter = 0
 
     # Get all nodes via the kubernetes API. This will give us access to all
-    # nodes' metadata.
-    url = 'https://%s:%s@%s' % (username, password, master_ip)
-    nodes = requests.get('%s/api/v1/nodes' % url, verify=False)
+    # nodes' metadata. If the master node does not expose a publicly accessible
+    # IP address, then the connection will fail. In that case, we won't be
+    # able to retrieve and verify the list of nodes in order to remove them
+    # from the cluster.
+    try:
+        url = 'https://%s:%s@%s' % (username, password, master_ip)
+        nodes = requests.get('%s/api/v1/nodes' % url, verify=False)
+    except Exception as exc:
+        if netaddr.IPAddress(master_ip).is_private():
+            raise NonRecoverableError(
+                'Cannot connect to the kubernetes master to automatically '
+                'remove nodes from the cluster. It seems like the kubernetes '
+                'master listens at a private IP address. You can manually '
+                'remove nodes by destroying them or by simply disassociating '
+                'them from the kubernetes cluster. For instance, the current '
+                'node can be removed from the cluster by issuing an HTTP '
+                'DELETE request at https://%s:%s@%s/api/v1/nodes/%s from the '
+                'same network' % (username, password, master_ip, worker_name)
+            )
+        raise NonRecoverableError('Connection to master failed: %s', exc)
     if not nodes.ok:
-        workctx.logger.debug('Kubernetes API returned: %s', nodes.text)
-        raise NonRecoverableError('Failed to connect to the kubernetes API')
+        raise NonRecoverableError('Got %s: %s', nodes.status_code, nodes.text)
     nodes = nodes.json()
 
     # If any of the machines specified, match a kubernetes node, then
@@ -83,7 +99,7 @@ def scale_cluster_down(quantity):
 
         workctx.logger.info('Removing %s from cluster', m)
         api = node['metadata']['selfLink']
-        resp = requests.delete('%s/%s' % (url, api), verify=False)
+        resp = requests.delete('%s%s' % (url, api), verify=False)
         if not resp.ok:
             workctx.logger.error('Bad response from kubernetes: %s', resp.text)
 
