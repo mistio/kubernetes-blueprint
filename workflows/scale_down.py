@@ -44,7 +44,6 @@ def scale_cluster_down(quantity):
     # TODO deprecate this! /
     mist_client = connection.MistConnectionClient(properties=master.properties)
     cloud = mist_client.cloud
-    master_machine = mist_client.machine
     # / deprecate
 
     worker_name = inputs.get('worker_name')
