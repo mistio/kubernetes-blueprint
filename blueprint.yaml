@@ -330,7 +330,7 @@ outputs:
   master:
     description: Kubernetes master node's IP address
     value:
-      ip: { get_attribute: [ kube_master, ip ] }
+      ip: { get_attribute: [ kube_master, server_ip ] }
   kubectl:
     description: Kubernetes cluster-info command
     value:
