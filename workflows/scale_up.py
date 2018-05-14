@@ -53,7 +53,7 @@ def graph_scale_workflow(delta):
             done_events[i],
         )
 
-    # Now, we use the events to control the tasks’ dependencies, ensuring that
+    # Now, we use the events to control the tasks' dependencies, ensuring that
     # tasks are executed in the correct order. We aim to create dependencies
     # between a sequence's last event and the next sequence's initial event.
     # That way, we ensure that sequences are executed sequentially, and not in
