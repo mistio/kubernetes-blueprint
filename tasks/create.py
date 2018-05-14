@@ -145,6 +145,7 @@ if __name__ == '__main__':
     # Create the nodes. Get the master node's IP address. NOTE that we prefer
     # to use private IP addresses for master-worker communication. Public IPs
     # are used mostly when connecting to the kubernetes API from the outside.
+    # TODO Use perhaps the first available IP from the list public + private?
     if ctx.node.properties['master']:
         create_machine(node_properties, wait_post_deploy, node_type='master')
 
