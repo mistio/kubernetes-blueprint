@@ -136,7 +136,6 @@ node_types:
               description: Polling interval until the server is active (in seconds)
               type: integer
               default: 30
-        associate: tasks/associate_nodes.py
 
   cloudify.mist.nodes.KubernetesWorker:
     derived_from: cloudify.mist.nodes.Server
