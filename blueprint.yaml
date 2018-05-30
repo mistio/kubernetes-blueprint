@@ -74,7 +74,7 @@ inputs:
   auth_pass:
     description: The password used for accessing the Kubernetes dashboard. If left blank, the password will be auto-generated
     type: string
-    default: 'admin'
+    default: ''
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # Declaration of Kubernetes node_types
