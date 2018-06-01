@@ -125,18 +125,17 @@ node_types:
     interfaces:
       cloudify.interfaces.lifecycle:
         create:
-          implementation: mist.plugin.server.create
+          implementation: tasks/create.py
           inputs:
             node_type:
               default: 'master'
         configure:
-          implementation: tasks/install_kubernetes.py
+          implementation: tasks/configure.py
           inputs:
             start_retry_interval:
               description: Polling interval until the server is active (in seconds)
               type: integer
               default: 30
-        associate: tasks/associate_nodes.py
 
   cloudify.mist.nodes.KubernetesWorker:
     derived_from: cloudify.mist.nodes.Server
@@ -173,13 +172,14 @@ node_types:
         type: cloudify.datatypes.mist.Config
     interfaces:
       cloudify.interfaces.lifecycle:
+        clone: tasks/clone.py
         create:
-          implementation: mist.plugin.server.create
+          implementation: tasks/create.py
           inputs:
             node_type:
               default: 'worker'
         configure:
-          implementation: tasks/install_kubernetes.py
+          implementation: tasks/configure.py
           inputs:
             start_retry_interval:
               description: Polling interval until the server is active (in seconds)
@@ -329,7 +329,7 @@ outputs:
   master:
     description: Kubernetes master node's IP address
     value:
-      ip: { get_attribute: [ kube_master, ip ] }
+      ip: { get_attribute: [ kube_master, server_ip ] }
   kubectl:
     description: Kubernetes cluster-info command
     value:
