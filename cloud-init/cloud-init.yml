@@ -12,5 +12,5 @@ runcmd:
           error=0
       fi
   - >
-      curl -X DELETE -H 'Authorization: {{ ctx.node.properties.mist_config.mist_token }}'
-      {{ ctx.node.properties.mist_config.mist_uri }}/api/v1/jobs/{{ ctx.instance.runtime_properties.job_id }}?error=\${error}&action=cloud_init_finished&machine_name={{ ctx.instance.runtime_properties.machine_name }}
+      curl -X DELETE -H "Authorization: {{ ctx.node.properties.mist_config.mist_token }}"
+      "{{ ctx.node.properties.mist_config.mist_uri }}/api/v1/jobs/{{ ctx.instance.runtime_properties.job_id }}?error=\${error}&action=cloud_init_finished&machine_name={{ ctx.instance.runtime_properties.machine_name }}"
