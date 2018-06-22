@@ -1175,11 +1175,12 @@ sysctl --system
 
 yum install -y docker kubelet-$(yum list available kubelet --showduplicates | grep 1.9.0 | head -1 | awk '{print $2}') \
                       kubeadm-$(yum list available kubeadm --showduplicates | grep 1.9.0 | head -1 | awk '{print $2}') \
-                      kubectl-$(yum list available kubectl --showduplicates | grep 1.9.0 | head -1 | awk '{print $2}') \
-                      python-pip
+                      kubectl-$(yum list available kubectl --showduplicates | grep 1.9.0 | head -1 | awk '{print $2}')
+
+# Install pip via curl.
+curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py && python get-pip.py
 
 # To be used later on yaml parsing
-pip2 install --upgrade pip==9.0.3
 pip install pyyaml
 
 systemctl enable docker && systemctl start docker
