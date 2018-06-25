@@ -1173,6 +1173,7 @@ net.bridge.bridge-nf-call-iptables = 1
 EOF
 sysctl --system
 
+yum update -y
 yum install -y docker kubelet-$(yum list available kubelet --showduplicates | grep 1.9.0 | head -1 | awk '{print $2}') \
                       kubeadm-$(yum list available kubeadm --showduplicates | grep 1.9.0 | head -1 | awk '{print $2}') \
                       kubectl-$(yum list available kubectl --showduplicates | grep 1.9.0 | head -1 | awk '{print $2}')
