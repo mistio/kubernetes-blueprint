@@ -10,6 +10,28 @@ from plugin.utils import wait_for_event
 from plugin.connection import MistConnectionClient
 
 
+def remove_kubernetes_script():
+    """Attempt to remove the kubernetes installation script.
+
+    This method tries to remove the already uploaded installation script after
+    each kubernetes node has been provisioned to prevent multiple scripts from
+    accumulating in the user's account.
+
+    If an error is raised, it's logged and the workflow execution is carried
+    on.
+
+    """
+    # FIXME Perhaps, scrtipt should not be handled here or this way. The
+    # cloudify-mist plugin should define a `Script` node type to execute
+    # operations on scripts, such as uploading, deleting, etc.
+    script_id = ctx.instance.runtime_properties.pop('script_id', '')
+    if script_id:
+        try:
+            MistConnectionClient().client.remove_script(script_id)
+        except Exception as exc:
+            ctx.logger.warn('Failed to remove installation script: %r', exc)
+
+
 def prepare_kubernetes_script():
     """Upload kubernetes installation script, if missing.
 
@@ -145,13 +167,19 @@ if __name__ == '__main__':
             configure_kubernetes_worker()
         else:
             configure_kubernetes_master()
-        wait_for_event(
-            job_id=ctx.instance.runtime_properties['job_id'],
-            job_kwargs={
-                'action': 'script_finished',
-                'machine_id': ctx.instance.runtime_properties['machine_id'],
-            }
-        )
+        try:
+            wait_for_event(
+                job_id=ctx.instance.runtime_properties['job_id'],
+                job_kwargs={
+                    'action': 'script_finished',
+                    'machine_id': ctx.instance.runtime_properties['machine_id'],
+                }
+            )
+        except Exception:
+            remove_kubernetes_script()
+            raise
+        else:
+            remove_kubernetes_script()
         ctx.logger.info('Kubernetes installation succeeded!')
     else:
         ctx.logger.info('Kubernetes already configured')
