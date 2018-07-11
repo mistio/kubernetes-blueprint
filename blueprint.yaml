@@ -116,6 +116,7 @@ node_types:
         default: ''
     interfaces:
       cloudify.interfaces.lifecycle:
+        stop: tasks/stop.py
         create:
           implementation: tasks/create.py
           inputs:
@@ -144,6 +145,7 @@ node_types:
         default: false
     interfaces:
       cloudify.interfaces.lifecycle:
+        stop: tasks/stop.py
         clone: tasks/clone.py
         create:
           implementation: tasks/create.py
