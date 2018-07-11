@@ -24,7 +24,7 @@ try:
 except IOError:
     # This path is for executions performed by Mist.io
     tmp_dir = os.path.join('/tmp/templates',
-                           'mistio-kubernetes-blueprint-[A-Za-z0-9]*',
+                           'kubernetes-blueprint',
                            'scripts')
     scripts_dir = glob.glob(tmp_dir)[0]
     resource_path = os.path.join(scripts_dir, 'mega-deploy.sh')
@@ -89,7 +89,7 @@ def scale_cluster_down(quantity):
     for m in machines:
         for node in nodes['items']:
             labels = node['metadata']['labels']
-            if labels['kubernetes.io/hostname'] == m.name:
+            if labels['kubernetes.io/hostname'] == m.name.lower():
                 if 'node-role.kubernetes.io/master' in labels.iterkeys():
                     raise NonRecoverableError('Cannot remove master')
                 break
