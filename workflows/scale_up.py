@@ -26,6 +26,27 @@ def graph_scale_workflow(delta):
         start_events[i] = instance.send_event('Adding node to cluster')
         done_events[i] = instance.send_event('Node added to cluster')
 
+    # Prepare the operations' kwargs.
+    if inputs.get('use_existing_resources'):
+        operation_kwargs_list = [
+            {
+             'cloud_id': inputs.get('mist_cloud', ''),
+             'use_external_resource': True,
+             'resource_id': rid
+            } for rid in inputs.get('mist_resource_ids', [])
+        ]
+    else:
+        operation_kwargs_list = [
+            {
+             'cloud_id': inputs.get('mist_cloud', ''),
+             'image_id': inputs.get('mist_image', ''),
+             'size_id': inputs.get('mist_size', ''),
+             'location_id': inputs.get('mist_location', ''),
+             'networks': inputs.get('mist_networks', []),
+             'key': inputs.get('mist_key', ''),
+            } for _ in range(delta)
+        ]
+
     # Create `delta` number of TaskSequence objects. That way we are able to
     # control the sequence of events and the dependencies amongst tasks. One
     # graph sequence corresponds to a new node added to the cluster.
@@ -38,14 +59,7 @@ def graph_scale_workflow(delta):
             ),
             instance.execute_operation(
                 operation='cloudify.interfaces.lifecycle.create',
-                kwargs={
-                    'cloud_id': inputs.get('mist_cloud', ''),
-                    'image_id': inputs.get('mist_image', ''),
-                    'size_id': inputs.get('mist_size', ''),
-                    'location_id': inputs.get('mist_location', ''),
-                    'networks': inputs.get('mist_networks', []),
-                    'key': inputs.get('mist_key', ''),
-                },
+                kwargs=operation_kwargs_list[i],
             ),
             instance.execute_operation(
                 operation='cloudify.interfaces.lifecycle.configure',
@@ -68,7 +82,10 @@ def graph_scale_workflow(delta):
 
 
 if __name__ == '__main__':
-    delta = int(inputs.get('delta') or 0)
+    if inputs.get('use_existing_resources'):
+        delta = len(inputs.get('mist_resource_ids', []))
+    else:
+        delta = int(inputs.get('delta') or 0)
     workctx.logger.info('Scaling kubernetes cluster up by %d node(s)', delta)
     if delta:
         graph_scale_workflow(delta)

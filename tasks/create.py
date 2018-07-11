@@ -118,6 +118,9 @@ if __name__ == '__main__':
 
     # Override the node's properties with parameters passed from workflows.
     for key in params:
+        if key in node_properties:
+            node_properties[key] = params[key]
+            ctx.logger.info('Added %s=%s to node properties', key, params[key])
         if key in node_properties['parameters']:
             node_properties['parameters'][key] = params[key]
             ctx.logger.info('Added %s=%s to node properties', key, params[key])

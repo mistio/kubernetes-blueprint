@@ -49,7 +49,7 @@ inputs:
     type: string
     default: ''
   mist_location_1:
-    description: The ID of a VM's location
+    description: The ID of the VM's location
     type: string
     default: ''
   mist_key_master:
@@ -58,6 +58,18 @@ inputs:
     default: ''
   mist_key_worker:
     description: The ID of the SSH key to be deployed on the Kubernetes Worker
+    type: string
+    default: ''
+  use_existing_resources:
+    description: Denotes whether to use existing VMs to setup the cluster. The default behavior is to provision new resources.
+    type: boolean
+    default: false
+  mist_resource_id_master:
+    description: The ID of the VM to use as the Kubernetes Master. This is required if use_existing_resources is enabled.
+    type: string
+    default: ''
+  mist_resource_id_worker:
+    description: The ID of the VM to use as the Kubernetes Worker. This is required if use_existing_resources is enabled.
     type: string
     default: ''
   ssh_user:
@@ -84,17 +96,6 @@ node_types:
   cloudify.mist.nodes.KubernetesMaster:
     derived_from: cloudify.mist.nodes.Server
     properties:
-      use_external_resource:
-        description: >
-          Indicates whether the resource exists or Cloudify should create it
-        type: boolean
-        default: false
-      resource_id:
-        description: >
-          If the resource already exists, you can provide its name or ID as it
-          exists on Mist.io
-        type: string
-        default: ''
       configured:
         description: >
           Indicates whether Kubernetes is already configured
@@ -105,15 +106,6 @@ node_types:
           Indicates the Kubernetes Master node
         type: boolean
         default: true
-      parameters:
-        description: >
-          A set of parameters required by the MistClient in order to provision
-          VMs on various cloud providers
-        type: cloudify.datatypes.mist.MachineParams
-      mist_config:
-        description: >
-          A set of parameters used to authenticate with the Mist.io API
-        type: cloudify.datatypes.mist.Config
       auth_user:
         description: >
           The username used for accessing the Kubernetes dashboard
@@ -140,17 +132,6 @@ node_types:
   cloudify.mist.nodes.KubernetesWorker:
     derived_from: cloudify.mist.nodes.Server
     properties:
-      use_external_resource:
-        description: >
-          Indicates whether the resource exists or Cloudify should create it
-        type: boolean
-        default: false
-      resource_id:
-        description: >
-          If the resource already exists, you can provide its name or ID as it
-          exists on Mist.io
-        type: string
-        default: ''
       configured:
         description: >
           Indicates whether Kubernetes is already configured
@@ -161,15 +142,6 @@ node_types:
           Indicates the Kubernetes Master node
         type: boolean
         default: false
-      parameters:
-        description: >
-          A set of parameters required by the MistClient in order to provision
-          VMs on various cloud providers
-        type: cloudify.datatypes.mist.MachineParams
-      mist_config:
-        description: >
-          A set of parameters used to authenticate with the Mist.io API
-        type: cloudify.datatypes.mist.Config
     interfaces:
       cloudify.interfaces.lifecycle:
         clone: tasks/clone.py
@@ -194,9 +166,8 @@ node_templates:
   kube_master:
     type: cloudify.mist.nodes.KubernetesMaster
     properties:
-      use_external_resource: false
-      resource_id: ''
-      configured: false
+      use_external_resource: { get_input: use_existing_resources }
+      resource_id: { get_input: mist_resource_id_master }
       parameters:
         cloud_id: { get_input: mist_cloud_1 }
         image_id: { get_input: mist_image_1 }
@@ -215,9 +186,8 @@ node_templates:
   kube_worker:
     type: cloudify.mist.nodes.KubernetesWorker
     properties:
-      use_external_resource: false
-      resource_id: ''
-      configured: false
+      use_external_resource: { get_input: use_existing_resources }
+      resource_id: { get_input: mist_resource_id_worker }
       parameters:
         cloud_id: { get_input: mist_cloud_1 }
         image_id: { get_input: mist_image_1 }
@@ -267,41 +237,69 @@ workflows:
   scale_cluster_up:
     mapping: workflows/scale_up.py
     parameters:
-# TODO: Not supported yet
-#      use_external_resource:
-#        type: boolean
-#        default: false
-#      external_resource_id:
-#        type: string
-#        default: ''
+      delta:
+        description: >
+          The number of worker nodes to be added to the cluster. The value
+          must be greater than 0 for the workflow to be run.
+        type: integer
+        default: 1
+      use_existing_resources:
+        description: >
+          Denotes whether to use existing VMs to scale up the cluster. The
+          default behavior is to provision new resources.
+        type: boolean
+        default: false
+      mist_resource_ids:
+        description: >
+          The IDs of the VMs to use as the new Kubernetes Worker. This is
+          required if use_existing_resources is enabled. Note that the delta
+          parameter will also be ignored, if existing resources are used for
+          scaling up the cluster. Instead, the delta will be determinted by
+          the length of the mist_resource_ids list.
+        default: []
       mist_cloud:
-        description: The ID of the cloud on which the machines will be provisioned
+        description: >
+          The ID of the cloud on which the machines will be provisioned. This
+          parameter is always required. Even if use_existing_resources is on.
         type: string
-        default: ''
       mist_image:
-        description: The ID of the image to be used for each VM
+        description: >
+          The ID of the image to be used. Note that this image will be used
+          for each VM provisioned. If the use_existing_resources flag is on,
+          then this parameter is not required and will be ignored if set.
         type: string
         default: ''
       mist_size:
-        description: The ID of the VMs' instance type
+        description: >
+          The ID of the instance type to be uses. Note that the same instance
+          type will be used for each VM provisioned. If use_existing_resources
+          has been enabled, then this parameter is not required and will be
+          ignored if set.
         type: string
         default: ''
       mist_location:
-        description: The ID of a VM's location
+        description: >
+          The ID of the VMs' location. Note that all provisioned VMs are going
+          to be deployed at this location/datacenter. If the cloud does not
+          support locations, this parameter can be safely ignored. If the flag
+          use_existing_resources has been enabled, then this parameter is not
+          required and will be ignored if set.
         type: string
         default: ''
       mist_networks:
-        description: Networks that the machines will join
+        description: >
+          The IDs of the networks each VM should be associated with. If the
+          use_existing_resources flag is on, this parameter is not required
+          and will be ignored if set.
         default: []
       mist_key:
-        description: The ID of the SSH key to be deployed on the VM
+        description: >
+          The ID of the SSH key to be deployed on each VM. Note that the same
+          SSH key is going to be deployed on every provisioned machine. Given
+          use_existing_resources has been enabled, then this paramter is not
+          required and will be ignored if set.
         type: string
         default: ''
-      delta:
-        description: >
-          Denotes how many worker nodes should be added to the cluster
-        type: integer
-        default: 1
 
   scale_cluster_down:
     mapping: workflows/scale_down.py

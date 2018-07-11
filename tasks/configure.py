@@ -132,7 +132,9 @@ def configure_kubernetes_worker():
 
     # FIXME Re-think this.
     client = MistConnectionClient().client
-    machine = MistConnectionClient().machine
+    cloud = MistConnectionClient().cloud
+    machine_id = ctx.instance.runtime_properties['machine_id']
+    machine = cloud.machines(id=machine_id)[0]
 
     ctx.logger.info('Configuring kubernetes node')
 
