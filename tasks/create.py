@@ -136,21 +136,29 @@ if __name__ == '__main__':
     ctx.instance.runtime_properties['machine_name'] = name
 
     # Generate cloud-init, if supported.
+    # TODO This is NOT going to work when use_external_resource is True. We
+    # are using cloud-init to configure the newly provisioned nodes in case
+    # the VMs are unreachable over SSH. If the VMs already exist, cloud-init
+    # is not an option. Perhaps, we should allow to toggle cloud-init on/off
+    # in some way after deciding if the VMs are accessible over the public
+    # internet.
     if conn.cloud.provider in constants.CLOUD_INIT_PROVIDERS:
+        if node_properties.get('use_external_resource'):
+            raise NonRecoverableError('use_external_resource may not be set')
         prepare_cloud_init()
         cloud_init = ctx.instance.runtime_properties.get('cloud_init', '')
         node_properties['parameters']['cloud_init'] = cloud_init
 
     # Do not wait for post-deploy-steps to finish in case the configuration
     # is done using a cloud-init script.
-    wait_post_deploy = conn.cloud.provider in constants.CLOUD_INIT_PROVIDERS
+    skip_post_deploy = conn.cloud.provider in constants.CLOUD_INIT_PROVIDERS
 
     # Create the nodes. Get the master node's IP address. NOTE that we prefer
     # to use private IP addresses for master-worker communication. Public IPs
     # are used mostly when connecting to the kubernetes API from the outside.
     # TODO Use perhaps the first available IP from the list public + private?
     if ctx.node.properties['master']:
-        create_machine(node_properties, wait_post_deploy, node_type='master')
+        create_machine(node_properties, skip_post_deploy, node_type='master')
 
         ips = (ctx.instance.runtime_properties['info']['private_ips'] +
                ctx.instance.runtime_properties['info']['public_ips'])
@@ -161,4 +169,4 @@ if __name__ == '__main__':
         ctx.instance.runtime_properties['master_ip'] = ips[0]
         ctx.instance.runtime_properties['server_ip'] = ips[-1]
     else:
-        create_machine(node_properties, wait_post_deploy, node_type='worker')
+        create_machine(node_properties, skip_post_deploy, node_type='worker')
