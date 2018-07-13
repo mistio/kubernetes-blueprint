@@ -44,6 +44,7 @@ def graph_scale_workflow(delta):
              'location_id': inputs.get('mist_location', ''),
              'networks': inputs.get('mist_networks', []),
              'key': inputs.get('mist_key', ''),
+             'use_external_resource': False,
             } for _ in range(delta)
         ]
 
