@@ -64,11 +64,11 @@ inputs:
     description: Denotes whether to use existing VMs to setup the cluster. The default behavior is to provision new resources.
     type: boolean
     default: false
-  mist_resource_id_master:
+  mist_machine_id_master:
     description: The ID of the VM to use as the Kubernetes Master. This is required if use_existing_resources is enabled.
     type: string
     default: ''
-  mist_resource_id_worker:
+  mist_machine_id_worker:
     description: The ID of the VM to use as the Kubernetes Worker. This is required if use_existing_resources is enabled.
     type: string
     default: ''
@@ -169,7 +169,7 @@ node_templates:
     type: cloudify.mist.nodes.KubernetesMaster
     properties:
       use_external_resource: { get_input: use_existing_resources }
-      resource_id: { get_input: mist_resource_id_master }
+      resource_id: { get_input: mist_machine_id_master }
       parameters:
         cloud_id: { get_input: mist_cloud_1 }
         image_id: { get_input: mist_image_1 }
@@ -189,7 +189,7 @@ node_templates:
     type: cloudify.mist.nodes.KubernetesWorker
     properties:
       use_external_resource: { get_input: use_existing_resources }
-      resource_id: { get_input: mist_resource_id_worker }
+      resource_id: { get_input: mist_machine_id_worker }
       parameters:
         cloud_id: { get_input: mist_cloud_1 }
         image_id: { get_input: mist_image_1 }
