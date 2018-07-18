@@ -81,9 +81,11 @@ def configure_kubernetes_master():
     ctx.logger.info('Setting up kubernetes master node')
     prepare_kubernetes_script()
 
-    # FIXME Re-think this.
-    client = MistConnectionClient().client
-    machine = MistConnectionClient().machine
+    conn = MistConnectionClient()
+    machine = conn.get_machine(
+        cloud_id=ctx.instance.runtime_properties['cloud_id'],
+        machine_id=ctx.instance.runtime_properties['machine_id'],
+    )
 
     # Token for secure master-worker communication.
     token = '%s.%s' % (random_string(length=6), random_string(length=16))
@@ -98,17 +100,17 @@ def configure_kubernetes_master():
     ctx.logger.info('Installing kubernetes on master node')
 
     # Prepare script parameters.
-    script_params = "-u '%s' " % ctx.instance.runtime_properties['auth_user']
-    script_params += "-p '%s' " % ctx.instance.runtime_properties['auth_pass']
-    script_params += "-t '%s' " % ctx.instance.runtime_properties['master_token']  # NOQA
-    script_params += "-r 'master'"
+    params = "-u '%s' " % ctx.instance.runtime_properties['auth_user']
+    params += "-p '%s' " % ctx.instance.runtime_properties['auth_pass']
+    params += "-t '%s' " % ctx.instance.runtime_properties['master_token']
+    params += "-r 'master'"
 
     # Run the script.
-    script = client.run_script(
+    script = conn.client.run_script(
         script_id=ctx.instance.runtime_properties['script_id'], su=True,
         machine_id=machine.id,
         cloud_id=machine.cloud.id,
-        script_params=script_params,
+        script_params=params,
     )
     ctx.instance.runtime_properties['job_id'] = script['job_id']
 
@@ -130,33 +132,34 @@ def configure_kubernetes_worker():
     ctx.logger.info('Setting up kubernetes worker')
     prepare_kubernetes_script()
 
-    # FIXME Re-think this.
-    client = MistConnectionClient().client
-    cloud = MistConnectionClient().cloud
-    machine_id = ctx.instance.runtime_properties['machine_id']
-    machine = cloud.machines(id=machine_id)[0]
+    conn = MistConnectionClient()
+    machine = conn.get_machine(
+        cloud_id=ctx.instance.runtime_properties['cloud_id'],
+        machine_id=ctx.instance.runtime_properties['machine_id'],
+    )
 
     ctx.logger.info('Configuring kubernetes node')
 
     # Prepare script parameters.
-    script_params = "-m '%s' " % ctx.instance.runtime_properties['master_ip']
-    script_params += "-t '%s' " % ctx.instance.runtime_properties['master_token']  # NOQA
-    script_params += "-r 'node'"
+    params = "-m '%s' " % ctx.instance.runtime_properties['master_ip']
+    params += "-t '%s' " % ctx.instance.runtime_properties['master_token']
+    params += "-r 'node'"
 
     # Run the script.
-    script = client.run_script(
+    script = conn.client.run_script(
         script_id=ctx.instance.runtime_properties['script_id'], su=True,
         machine_id=machine.id,
         cloud_id=machine.cloud.id,
-        script_params=script_params,
+        script_params=params,
     )
     ctx.instance.runtime_properties['job_id'] = script['job_id']
 
 
 if __name__ == '__main__':
     """Setup kubernetes on the machines defined by the blueprint."""
-    # FIXME Re-think this.
-    if MistConnectionClient().cloud.provider in constants.CLOUD_INIT_PROVIDERS:
+    conn = MistConnectionClient()
+    cloud = conn.get_cloud(ctx.instance.runtime_properties['cloud_id'])
+    if cloud.provider in constants.CLOUD_INIT_PROVIDERS:
         wait_for_event(
             job_id=ctx.instance.runtime_properties['job_id'],
             job_kwargs={

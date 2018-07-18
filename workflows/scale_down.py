@@ -41,10 +41,9 @@ def scale_cluster_down(quantity):
     master_ip = master_node.runtime_properties['server_ip']
     username = master_node.runtime_properties['auth_user']
     password = master_node.runtime_properties['auth_pass']
-    # TODO deprecate this! /
-    mist_client = connection.MistConnectionClient(properties=master.properties)
-    cloud = mist_client.cloud
-    # / deprecate
+
+    conn = connection.MistConnectionClient(properties=master.properties)
+    cloud = conn.get_cloud(master_node.runtime_properties['cloud_id'])
 
     worker_name = inputs.get('worker_name')
     if not worker_name:
