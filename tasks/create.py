@@ -9,6 +9,7 @@ from plugin.utils import random_string
 from plugin.utils import generate_name
 from plugin.utils import get_stack_name
 
+from plugin.server import get_cloud_id
 from plugin.server import create_machine
 from plugin.connection import MistConnectionClient
 
@@ -135,7 +136,6 @@ if __name__ == '__main__':
     ctx.instance.runtime_properties['machine_name'] = name
 
     #
-    from plugin.server import get_cloud_id
     cloud = conn.get_cloud(get_cloud_id(node_properties))
 
     # Generate cloud-init, if supported.
