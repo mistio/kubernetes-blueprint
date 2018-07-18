@@ -39,7 +39,7 @@ def reset_kubeadm():
         machine_id=ctx.instance.runtime_properties['machine_id'],
     )
 
-    ctx.logger.info('Running "kubeadm reset" on machine %s', machine_id)
+    ctx.logger.info('Running "kubeadm reset" on %s', machine)
 
     # Run the script.
     job = conn.client.run_script(script_id=script['id'], machine_id=machine.id,
