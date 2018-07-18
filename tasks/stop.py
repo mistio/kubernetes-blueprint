@@ -18,7 +18,7 @@ def reset_kubeadm():
     """
     ctx.logger.info('Uploading script to reset kubeadm')
 
-    client = MistConnectionClient().client
+    conn = MistConnectionClient()
 
     # Get script from path.
     script = os.path.join(os.path.dirname(__file__), 'mega-reset.sh')
@@ -29,20 +29,21 @@ def reset_kubeadm():
         script = fobj.read()
 
     # Upload script.
-    script = client.add_script(
+    script = conn.client.add_script(
         name='kubeadm_reset_%s' % random_string(length=4),
         script=script, location_type='inline', exec_type='executable'
     )
 
-    cloud = MistConnectionClient().cloud
-    machine_id = ctx.instance.runtime_properties['machine_id']
-    machine = cloud.machines(id=machine_id)[0]
+    machine = conn.get_machine(
+        cloud_id=ctx.instance.runtime_properties['cloud_id'],
+        machine_id=ctx.instance.runtime_properties['machine_id'],
+    )
 
     ctx.logger.info('Running "kubeadm reset" on machine %s', machine_id)
 
     # Run the script.
-    job = client.run_script(script_id=script['id'], machine_id=machine.id,
-                            cloud_id=machine.cloud.id)
+    job = conn.client.run_script(script_id=script['id'], machine_id=machine.id,
+                                 cloud_id=machine.cloud.id)
 
     # Wait for the script to exit. The script should exit fairly quickly,
     # thus we only wait for a couple of minutes for the corresponding log
@@ -62,7 +63,7 @@ def reset_kubeadm():
 
     # Remove the script.
     try:
-        client.remove_script(script['id'])
+        conn.client.remove_script(script['id'])
     except Exception as exc:
         ctx.logger.warn('Failed to remove installation script: %r', exc)
 

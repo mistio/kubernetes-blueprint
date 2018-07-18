@@ -9,6 +9,7 @@ from plugin.utils import random_string
 from plugin.utils import generate_name
 from plugin.utils import get_stack_name
 
+from plugin.server import get_cloud_id
 from plugin.server import create_machine
 from plugin.connection import MistConnectionClient
 
@@ -109,9 +110,8 @@ if __name__ == '__main__':
     performing any additional actions.
 
     """
-    # FIXME Re-think this.
     conn = MistConnectionClient()
-    ctx.instance.runtime_properties['job_id'] = conn.client.job_id
+    ctx.instance.runtime_properties['job_id'] = conn.job_id
 
     # Create a copy of the node's immutable properties in order to update them.
     node_properties = ctx.node.properties.copy()
@@ -135,6 +135,9 @@ if __name__ == '__main__':
     node_properties['parameters']['name'] = name
     ctx.instance.runtime_properties['machine_name'] = name
 
+    #
+    cloud = conn.get_cloud(get_cloud_id(node_properties))
+
     # Generate cloud-init, if supported.
     # TODO This is NOT going to work when use_external_resource is True. We
     # are using cloud-init to configure the newly provisioned nodes in case
@@ -142,7 +145,7 @@ if __name__ == '__main__':
     # is not an option. Perhaps, we should allow to toggle cloud-init on/off
     # in some way after deciding if the VMs are accessible over the public
     # internet.
-    if conn.cloud.provider in constants.CLOUD_INIT_PROVIDERS:
+    if cloud.provider in constants.CLOUD_INIT_PROVIDERS:
         if node_properties.get('use_external_resource'):
             raise NonRecoverableError('use_external_resource may not be set')
         prepare_cloud_init()
@@ -151,7 +154,7 @@ if __name__ == '__main__':
 
     # Do not wait for post-deploy-steps to finish in case the configuration
     # is done using a cloud-init script.
-    skip_post_deploy = conn.cloud.provider in constants.CLOUD_INIT_PROVIDERS
+    skip_post_deploy = cloud.provider in constants.CLOUD_INIT_PROVIDERS
 
     # Create the nodes. Get the master node's IP address. NOTE that we prefer
     # to use private IP addresses for master-worker communication. Public IPs
