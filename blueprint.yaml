@@ -133,15 +133,15 @@ node_templates:
   kube_master:
     type: cloudify.mist.nodes.KubernetesMaster
     properties:
-      use_external_resource: { get_input: use_existing_resources }  # FIXME
-      resource_id: { get_input: mist_machine_id_master }  # FIXME
-      parameters:
-        cloud_id: { get_input: mist_cloud_1 }  # FIXME
-        image_id: { get_input: mist_image_1 }  # FIXME
-        size_id: { get_input: mist_size_1 }  # FIXME
-        location_id: { get_input: mist_location_1 }  # FIXME
-        networks: { get_input: mist_networks_1 }  # FIXME
-        key: { get_input: mist_key_master }  # FIXME
+#      use_external_resource: { get_input: use_existing_resources }  # FIXME
+#      resource_id: { get_input: mist_machine_id_master }  # FIXME
+#      parameters:
+#        cloud_id: { get_input: mist_cloud_1 }  # FIXME
+#        image_id: { get_input: mist_image_1 }  # FIXME
+#        size_id: { get_input: mist_size_1 }  # FIXME
+#        location_id: { get_input: mist_location_1 }  # FIXME
+#        networks: { get_input: mist_networks_1 }  # FIXME
+#        key: { get_input: mist_key_master }  # FIXME
       mist_config:
         mist_token: { get_input: mist_token }
         mist_username: { get_input: mist_username }
@@ -153,15 +153,15 @@ node_templates:
   kube_worker:
     type: cloudify.mist.nodes.KubernetesWorker
     properties:
-      use_external_resource: { get_input: use_existing_resources }  # FIXME
-      resource_id: { get_input: mist_machine_id_worker }  # FIXME
+#      use_external_resource: { get_input: use_existing_resources }  # FIXME
+#      resource_id: { get_input: mist_machine_id_worker }  # FIXME
       parameters:
-        cloud_id: { get_input: mist_cloud_1 }  # FIXME
-        image_id: { get_input: mist_image_1 }  # FIXME
-        size_id: { get_input: mist_size_1 }  # FIXME
-        location_id: { get_input: mist_location_1 }  # FIXME
-        networks: { get_input: mist_networks_1 }  # FIXME
-        key: { get_input: mist_key_worker }  # FIXME
+#        cloud_id: { get_input: mist_cloud_1 }  # FIXME
+#        image_id: { get_input: mist_image_1 }  # FIXME
+#        size_id: { get_input: mist_size_1 }  # FIXME
+#        location_id: { get_input: mist_location_1 }  # FIXME
+#        networks: { get_input: mist_networks_1 }  # FIXME
+#        key: { get_input: mist_key_worker }  # FIXME
       mist_config:
         mist_token: { get_input: mist_token }
         mist_username: { get_input: mist_username }
@@ -177,7 +177,7 @@ node_templates:
     properties:
       use_external_resource: false
       private_key_path: ''
-      resource_id: { get_input: mist_key_master }  # FIXME
+#      resource_id: { get_input: mist_key_master }  # FIXME
       mist_config:
         mist_token: { get_input: mist_token }
         mist_username: { get_input: mist_username }
@@ -189,7 +189,7 @@ node_templates:
     properties:
       use_external_resource: false
       private_key_path: ''
-      resource_id: { get_input: mist_key_worker }  # FIXME
+#      resource_id: { get_input: mist_key_worker }  # FIXME
       mist_config:
         mist_token: { get_input: mist_token }
         mist_username: { get_input: mist_username }
