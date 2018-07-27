@@ -155,7 +155,7 @@ node_templates:
     properties:
 #      use_external_resource: { get_input: use_existing_resources }  # FIXME
 #      resource_id: { get_input: mist_machine_id_worker }  # FIXME
-      parameters:
+#      parameters:
 #        cloud_id: { get_input: mist_cloud_1 }  # FIXME
 #        image_id: { get_input: mist_image_1 }  # FIXME
 #        size_id: { get_input: mist_size_1 }  # FIXME
