@@ -2,7 +2,7 @@ from cloudify.workflows import ctx as workctx
 from cloudify.workflows import parameters as inputs
 
 
-def graph_scale_workflow(delta):
+def graph_scale_up_workflow(delta):
     """Scale up the kubernetes cluster.
 
     This method implements the scale up workflow using the Graph Framework.
@@ -89,4 +89,4 @@ if __name__ == '__main__':
         delta = int(inputs.get('delta') or 0)
     workctx.logger.info('Scaling kubernetes cluster up by %d node(s)', delta)
     if delta:
-        graph_scale_workflow(delta)
+        graph_scale_up_workflow(delta)
