@@ -1,10 +1,8 @@
 from cloudify.workflows import ctx as workctx
 from cloudify.workflows import parameters as inputs
 
-from plugin import constants
 
-
-def graph_scale_up_workflow(delta):
+def graph_scale_up_workflow(delta, worker_data_list):
     """Scale up the kubernetes cluster.
 
     This method implements the scale up workflow using the Graph Framework.
@@ -29,27 +27,28 @@ def graph_scale_up_workflow(delta):
         done_events[i] = instance.send_event('Node added to cluster')
 
     # Prepare the operations' kwargs.
-    worker_data = inputs.get('mist_machine_worker', {})
+    operation_kwargs_list = []
 
-    if worker_data.get('machine_id'):
-        operation_kwargs_list = [
-            {
-                'cloud_id': worker_data.get('cloud_id', ''),
-                'machine_id': worker_data['machine_id'],
-            }
-        ]
-    else:
-        operation_kwargs_list = [
-            {
-                'cloud_id': worker_data.get('cloud_id', ''),
-                'image_id': worker_data.get('image_id', ''),
-                'size_id': worker_data.get('size_id', ''),
-                'location_id': worker_data.get('location_id', ''),
-                'key_id': worker_data.get('key_id', ''),
-                'networks': worker_data.get('networks', []),
-                'machine_id': '',
-            }
-        ]
+    for worker_data in worker_data_list:
+        if worker_data.get('machine_id'):
+            operation_kwargs_list.append(
+                {
+                    'cloud_id': worker_data.get('cloud_id'),
+                    'machine_id': worker_data['machine_id'],
+                }
+            )
+        else:
+            operation_kwargs_list.append(
+                {
+                    'key_id': worker_data.get('key_id', ''),
+                    'size_id': worker_data.get('size_id', ''),
+                    'image_id': worker_data.get('image_id', ''),
+                    'cloud_id': worker_data.get('cloud_id', ''),
+                    'machine_id': '',
+                    'networks': worker_data.get('networks', []),
+                    'location_id': worker_data.get('location_id', ''),
+                }
+            )
 
     # Create `delta` number of TaskSequence objects. That way we are able to
     # control the sequence of events and the dependencies amongst tasks. One
@@ -86,7 +85,15 @@ def graph_scale_up_workflow(delta):
 
 
 if __name__ == '__main__':
-    delta = int(inputs.get('delta') or 1)
+    mist_machines = inputs.get('mist_machine_worker_list', [])
+    assert isinstance(mist_machines, list), mist_machines
+    if len(mist_machines) is 0:
+        delta = 0
+    if len(mist_machines) is 1:
+        delta = mist_machines[0].get('quantity', 1)
+        mist_machines *= delta
+    if len(mist_machines) >= 2:
+        delta = len(mist_machines)
     workctx.logger.info('Scaling kubernetes cluster up by %d node(s)', delta)
     if delta:
-        graph_scale_up_workflow(delta)
+        graph_scale_up_workflow(delta, mist_machines)
