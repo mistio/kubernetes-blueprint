@@ -139,17 +139,13 @@ workflows:
   scale_cluster_up:
     mapping: workflows/scale_up.py
     parameters:
-      mist_machine_worker:
+      mist_machine_worker_list:
+        default: []
         description: >
-          The spec of the machine to be used as the new kubernetes node.
-          This is the same input as the one provided in the inputs section.
-#      mist_machine_worker_list:
-#        default: []
-#        description: >
-#          A list of `mist_machine_worker` inputs, as also defined in the
-#          inputs section, used to increase the cluster's size by more than
-#          a single node at once. The size of the list equals the scaling
-#          factor.
+          A list of `mist_machine_worker` inputs, as also defined in the
+          inputs section, used to increase the cluster's size by more than
+          a single node at once. The size of the list equals the scaling
+          factor.
 
   scale_cluster_down:
     mapping: workflows/scale_down.py
