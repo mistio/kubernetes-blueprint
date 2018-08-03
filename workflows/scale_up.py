@@ -2,7 +2,7 @@ from cloudify.workflows import ctx as workctx
 from cloudify.workflows import parameters as inputs
 
 
-def graph_scale_workflow(delta):
+def graph_scale_up_workflow(delta, worker_data_list):
     """Scale up the kubernetes cluster.
 
     This method implements the scale up workflow using the Graph Framework.
@@ -26,6 +26,30 @@ def graph_scale_workflow(delta):
         start_events[i] = instance.send_event('Adding node to cluster')
         done_events[i] = instance.send_event('Node added to cluster')
 
+    # Prepare the operations' kwargs.
+    operation_kwargs_list = []
+
+    for worker_data in worker_data_list:
+        if worker_data.get('machine_id'):
+            operation_kwargs_list.append(
+                {
+                    'cloud_id': worker_data.get('cloud_id'),
+                    'machine_id': worker_data['machine_id'],
+                }
+            )
+        else:
+            operation_kwargs_list.append(
+                {
+                    'key_id': worker_data.get('key_id', ''),
+                    'size_id': worker_data.get('size_id', ''),
+                    'image_id': worker_data.get('image_id', ''),
+                    'cloud_id': worker_data.get('cloud_id', ''),
+                    'machine_id': '',
+                    'networks': worker_data.get('networks', []),
+                    'location_id': worker_data.get('location_id', ''),
+                }
+            )
+
     # Create `delta` number of TaskSequence objects. That way we are able to
     # control the sequence of events and the dependencies amongst tasks. One
     # graph sequence corresponds to a new node added to the cluster.
@@ -38,14 +62,7 @@ def graph_scale_workflow(delta):
             ),
             instance.execute_operation(
                 operation='cloudify.interfaces.lifecycle.create',
-                kwargs={
-                    'cloud_id': inputs.get('mist_cloud', ''),
-                    'image_id': inputs.get('mist_image', ''),
-                    'size_id': inputs.get('mist_size', ''),
-                    'location_id': inputs.get('mist_location', ''),
-                    'networks': inputs.get('mist_networks', []),
-                    'key': inputs.get('mist_key', ''),
-                },
+                kwargs=operation_kwargs_list[i],
             ),
             instance.execute_operation(
                 operation='cloudify.interfaces.lifecycle.configure',
@@ -68,7 +85,15 @@ def graph_scale_workflow(delta):
 
 
 if __name__ == '__main__':
-    delta = int(inputs.get('delta') or 0)
+    mist_machines = inputs.get('mist_machine_worker_list', [])
+    assert isinstance(mist_machines, list), mist_machines
+    if len(mist_machines) is 0:
+        delta = 0
+    if len(mist_machines) is 1:
+        delta = mist_machines[0].get('quantity', 1)
+        mist_machines *= delta
+    if len(mist_machines) >= 2:
+        delta = len(mist_machines)
     workctx.logger.info('Scaling kubernetes cluster up by %d node(s)', delta)
     if delta:
-        graph_scale_workflow(delta)
+        graph_scale_up_workflow(delta, mist_machines)

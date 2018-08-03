@@ -8,7 +8,9 @@ from plugin import constants
 from plugin.utils import random_string
 from plugin.utils import generate_name
 from plugin.utils import get_stack_name
+from plugin.utils import is_resource_external
 
+from plugin.server import get_cloud_id
 from plugin.server import create_machine
 from plugin.connection import MistConnectionClient
 
@@ -76,6 +78,7 @@ def get_master_init_args():
 
     return arguments
 
+
 def get_worker_init_args():
     """Return the arguments required to install a kubernetes worker."""
 
@@ -109,18 +112,17 @@ if __name__ == '__main__':
     performing any additional actions.
 
     """
-    # FIXME Re-think this.
     conn = MistConnectionClient()
-    ctx.instance.runtime_properties['job_id'] = conn.client.job_id
+    ctx.instance.runtime_properties['job_id'] = conn.job_id
 
     # Create a copy of the node's immutable properties in order to update them.
     node_properties = ctx.node.properties.copy()
 
     # Override the node's properties with parameters passed from workflows.
     for key in params:
-        if key in node_properties['parameters']:
+        if key in constants.INSTANCE_REQUIRED_PROPERTIES + ('machine_id', ):
             node_properties['parameters'][key] = params[key]
-            ctx.logger.info('Added %s=%s to node properties', key, params[key])
+            ctx.logger.info('Added %s=%s to node parameters', key, params[key])
 
     # Generate a somewhat random machine name. NOTE that we need the name at
     # this early point in order to be passed into cloud-init, if used, so that
@@ -132,22 +134,32 @@ if __name__ == '__main__':
     node_properties['parameters']['name'] = name
     ctx.instance.runtime_properties['machine_name'] = name
 
+    # Get the cloud based on the node's properties.
+    cloud = conn.get_cloud(get_cloud_id(node_properties))
+
     # Generate cloud-init, if supported.
-    if conn.cloud.provider in constants.CLOUD_INIT_PROVIDERS:
+    # TODO This is NOT going to work when use_external_resource is True. We
+    # are using cloud-init to configure the newly provisioned nodes in case
+    # the VMs are unreachable over SSH. If the VMs already exist, cloud-init
+    # is not an option. Perhaps, we should allow to toggle cloud-init on/off
+    # in some way after deciding if the VMs are accessible over the public
+    # internet.
+    if cloud.provider in constants.CLOUD_INIT_PROVIDERS:
+        if is_resource_external(node_properties):
+            raise NonRecoverableError('use_external_resource may not be set')
         prepare_cloud_init()
         cloud_init = ctx.instance.runtime_properties.get('cloud_init', '')
         node_properties['parameters']['cloud_init'] = cloud_init
 
     # Do not wait for post-deploy-steps to finish in case the configuration
     # is done using a cloud-init script.
-    wait_post_deploy = conn.cloud.provider in constants.CLOUD_INIT_PROVIDERS
+    skip_post_deploy = cloud.provider in constants.CLOUD_INIT_PROVIDERS
 
     # Create the nodes. Get the master node's IP address. NOTE that we prefer
     # to use private IP addresses for master-worker communication. Public IPs
     # are used mostly when connecting to the kubernetes API from the outside.
-    # TODO Use perhaps the first available IP from the list public + private?
     if ctx.node.properties['master']:
-        create_machine(node_properties, wait_post_deploy, node_type='master')
+        create_machine(node_properties, skip_post_deploy, node_type='master')
 
         ips = (ctx.instance.runtime_properties['info']['private_ips'] +
                ctx.instance.runtime_properties['info']['public_ips'])
@@ -158,4 +170,4 @@ if __name__ == '__main__':
         ctx.instance.runtime_properties['master_ip'] = ips[0]
         ctx.instance.runtime_properties['server_ip'] = ips[-1]
     else:
-        create_machine(node_properties, wait_post_deploy, node_type='worker')
+        create_machine(node_properties, skip_post_deploy, node_type='worker')
