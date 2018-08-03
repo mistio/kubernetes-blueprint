@@ -8,6 +8,7 @@ from plugin import constants
 from plugin.utils import random_string
 from plugin.utils import generate_name
 from plugin.utils import get_stack_name
+from plugin.utils import is_resource_external
 
 from plugin.server import get_cloud_id
 from plugin.server import create_machine
@@ -77,6 +78,7 @@ def get_master_init_args():
 
     return arguments
 
+
 def get_worker_init_args():
     """Return the arguments required to install a kubernetes worker."""
 
@@ -118,12 +120,9 @@ if __name__ == '__main__':
 
     # Override the node's properties with parameters passed from workflows.
     for key in params:
-        if key in node_properties:
-            node_properties[key] = params[key]
-            ctx.logger.info('Added %s=%s to node properties', key, params[key])
-        if key in node_properties['parameters']:
+        if key in constants.INSTANCE_REQUIRED_PROPERTIES + ('machine_id', ):
             node_properties['parameters'][key] = params[key]
-            ctx.logger.info('Added %s=%s to node properties', key, params[key])
+            ctx.logger.info('Added %s=%s to node parameters', key, params[key])
 
     # Generate a somewhat random machine name. NOTE that we need the name at
     # this early point in order to be passed into cloud-init, if used, so that
@@ -146,7 +145,7 @@ if __name__ == '__main__':
     # in some way after deciding if the VMs are accessible over the public
     # internet.
     if cloud.provider in constants.CLOUD_INIT_PROVIDERS:
-        if node_properties.get('use_external_resource'):
+        if is_resource_external(node_properties):
             raise NonRecoverableError('use_external_resource may not be set')
         prepare_cloud_init()
         cloud_init = ctx.instance.runtime_properties.get('cloud_init', '')
@@ -159,7 +158,6 @@ if __name__ == '__main__':
     # Create the nodes. Get the master node's IP address. NOTE that we prefer
     # to use private IP addresses for master-worker communication. Public IPs
     # are used mostly when connecting to the kubernetes API from the outside.
-    # TODO Use perhaps the first available IP from the list public + private?
     if ctx.node.properties['master']:
         create_machine(node_properties, skip_post_deploy, node_type='master')
 
