@@ -1214,6 +1214,7 @@ etcd:
     'listen-peer-urls': 'http://127.0.0.1:2380'
 
 token: $TOKEN
+tokenTTL: 0s
 EOF
 
 # Initialize kubeadm
