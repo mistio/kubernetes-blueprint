@@ -160,32 +160,32 @@ workflows:
 # connecting to the cluster and accessing its dashboard.
 
 outputs:
-  set_cluster:
+  configure_kubectl_context_cluster:
     description: Configure cluster in kubectl
     value:
       command: { concat: [ 'kubectl config set-cluster ',
-                           'mycluster',
+                           'mycontext-cluster',
                            ' --insecure-skip-tls-verify=true',
                            ' --server="https://', { get_attribute: [ kube_master, server_ip ] }, '"']}
-  set_credentials:
+  configure_kubectl_context_credentials:
     description: Configure cluster credentials using password authentication
     value:
-      command: { concat: [ 'kubectl config set-credentials mycluster-admin',
+      command: { concat: [ 'kubectl config set-credentials mycontext-admin',
                             ' --username="', { get_attribute: [ kube_master, auth_user ] }, '"',
                             ' --password="', { get_attribute: [ kube_master, auth_pass ] }, '"']}
-  set_context:
+  configure_kubectl_context_set:
     description: Configure kubectl context for cluster using previously configured credentials
     value:
-      command: { concat: ['kubectl config set-context mycontext --cluster=mycluster --user=mycluster-admin']}
-  use_context:
+      command: { concat: ['kubectl config set-context mycontext --cluster=mycontext-cluster --user=mycontext-admin']}
+  kubectl_use_context:
     description: Switch to the configured context for this cluster
     value:
       command: { concat: ['kubectl config use-context mycontext'] }
-  cluster_info:
+  show_cluster_info:
     description: Kubernetes cluster-info command
     value:
       command: { concat: [ 'kubectl cluster-info' ] }
-  dashboard:
+  start_dashboard_proxy:
     description: Kubernetes dashboard URL
     value:
       command: { concat: [ 'kubectl proxy' ] }
