@@ -160,20 +160,33 @@ workflows:
 # connecting to the cluster and accessing its dashboard.
 
 outputs:
-  kubectl:
+  set_cluster:
+    description: Configure cluster in kubectl
+    value:
+      command: { concat: [ 'kubectl config set-cluster ',
+                           'mycluster',
+                           ' --insecure-skip-tls-verify=true',
+                           ' --server="https://', { get_attribute: [ kube_master, server_ip ] }, '"']}
+  set_credentials:
+    description: Configure cluster credentials using password authentication
+    value:
+      command: { concat: [ 'kubectl config set-credentials mycluster-admin',
+                            ' --username="', { get_attribute: [ kube_master, auth_user ] }, '"',
+                            ' --password="', { get_attribute: [ kube_master, auth_pass ] }, '"']}
+  set_context:
+    description: Configure kubectl context for cluster using previously configured credentials
+    value:
+      command: { concat: ['kubectl config set-context mycontext --cluster=mycluster --user=mycluster-admin']}
+  use_context:
+    description: Switch to the configured context for this cluster
+    value:
+      command: { concat: ['kubectl config use-context mycontext'] }
+  cluster_info:
     description: Kubernetes cluster-info command
     value:
-      command: { concat: [ 'kubectl --insecure-skip-tls-verify
-                           --server="https://', { get_attribute: [ kube_master, server_ip ] },
-                           '" --username="', { get_attribute: [ kube_master, auth_user ] },
-                           '" --password="', { get_attribute: [ kube_master, auth_pass ] },
-                           '" cluster-info' ] }
+      command: { concat: [ 'kubectl cluster-info' ] }
   dashboard:
     description: Kubernetes dashboard URL
     value:
-      command: { concat: [ 'kubectl --insecure-skip-tls-verify
-                           --server="https://', { get_attribute: [ kube_master, server_ip ] },
-                           '" --username="', { get_attribute: [ kube_master, auth_user ] },
-                           '" --password="', { get_attribute: [ kube_master, auth_pass ] },
-                           '" proxy' ] }
+      command: { concat: [ 'kubectl proxy' ] }
       url: http://localhost:8001/ui
