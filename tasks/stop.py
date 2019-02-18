@@ -58,10 +58,10 @@ def drain_and_remove():
     ctx.download_resource_and_render(
         os.path.join('scripts', 'drain-node.sh'), script,
         template_variables={
-            'server_ip': master.runtime_properties['server_ip'],
+            'server_ip': master.runtime_properties.get('server_ip',''),
             'auth_user': master.runtime_properties['auth_user'],
             'auth_pass': master.runtime_properties['auth_pass'],
-            'hostname': ctx.instance.runtime_properties['machine_name'].lower()
+            'hostname': ctx.instance.runtime_properties.get('machine_name', '').lower()
         },
     )
 
