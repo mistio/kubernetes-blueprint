@@ -160,22 +160,22 @@ workflows:
 # connecting to the cluster and accessing its dashboard.
 
 outputs:
-  kubectl_configure_context:
+  configure_context:
     description: Configure kubectl context for cluster
     value:
       command: { concat: [ 'kubectl config set-cluster ',
                            'mycontext-cluster',
                            ' --insecure-skip-tls-verify=true',
                            ' --server="https://', { get_attribute: [ kube_master, server_ip ] }, '"',
-                           '& kubectl config set-credentials mycontext-admin',
+                           ' && kubectl config set-credentials mycontext-admin',
                            ' --username="', { get_attribute: [ kube_master, auth_user ] }, '"',
                            ' --password="', { get_attribute: [ kube_master, auth_pass ] }, '"',
-                           '& kubectl config set-context mycontext --cluster=mycontext-cluster --user=mycontext-admin']}
+                           ' && kubectl config set-context mycontext --cluster=mycontext-cluster --user=mycontext-admin']}
   kubectl_use_context:
     description: Switch to the configured context for this cluster
     value:
       command: { concat: ['kubectl config use-context mycontext'] }
-  show_cluster_info:
+  kubectl_cluster_info:
     description: Kubernetes cluster-info command
     value:
       command: { concat: [ 'kubectl cluster-info' ] }
