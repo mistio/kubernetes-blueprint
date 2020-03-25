@@ -713,7 +713,7 @@ echo "$AUTH_PASSWORD,$AUTH_USERNAME,1" > /etc/kubernetes/auth/basicauth.csv
 export ETCD_ENDPOINTS=http://127.0.0.1:2379
 
 # Specify the version (vX.Y.Z) of Kubernetes assets to deploy
-export K8S_VER=v1.9.6_coreos.2
+export K8S_VER=v1.10.5_coreos.0
 
 # Hyperkube image repository to use.
 export HYPERKUBE_IMAGE_REPO=quay.io/coreos/hyperkube
@@ -1059,7 +1059,7 @@ ETCD_ENDPOINTS=http://${MASTER}:2379
 export CONTROLLER_ENDPOINT=http://${MASTER}:8080
 
 # Specify the version (vX.Y.Z) of Kubernetes assets to deploy
-export K8S_VER=v1.9.6_coreos.2
+export K8S_VER=v1.10.5_coreos.0
 
 # Hyperkube image repository to use.
 export HYPERKUBE_IMAGE_REPO=quay.io/coreos/hyperkube
@@ -1135,9 +1135,9 @@ cat <<EOF >/etc/apt/sources.list.d/kubernetes.list
 deb http://apt.kubernetes.io/ kubernetes-xenial main
 EOF
 apt-get update
-apt-get install -y kubelet=$(apt-cache madison kubelet | grep 1.16 | head -1| awk '{print $3}') \
-                   kubeadm=$(apt-cache madison kubeadm | grep 1.16 | head -1| awk '{print $3}') \
-                   kubectl=$(apt-cache madison kubectl | grep 1.16 | head -1| awk '{print $3}')
+apt-get install -y kubelet=$(apt-cache madison kubelet | grep 1.17 | head -1| awk '{print $3}') \
+                   kubeadm=$(apt-cache madison kubeadm | grep 1.17 | head -1| awk '{print $3}') \
+                   kubectl=$(apt-cache madison kubectl | grep 1.17 | head -1| awk '{print $3}')
 systemctl enable kubelet
 
 if [ $ROLE = "master" ]; then
@@ -1177,9 +1177,9 @@ sysctl --system
 
 yum update -y
 yum install -y docker-ce docker-ce-cli containerd.io \
-                      kubelet-$(yum list available kubelet --showduplicates | grep 1.16 | head -1 | awk '{print $2}') \
-                      kubeadm-$(yum list available kubeadm --showduplicates | grep 1.16 | head -1 | awk '{print $2}') \
-                      kubectl-$(yum list available kubectl --showduplicates | grep 1.16 | head -1 | awk '{print $2}')
+                      kubelet-$(yum list available kubelet --showduplicates | grep 1.17 | head -1 | awk '{print $2}') \
+                      kubeadm-$(yum list available kubeadm --showduplicates | grep 1.17 | head -1 | awk '{print $2}') \
+                      kubectl-$(yum list available kubectl --showduplicates | grep 1.17 | head -1 | awk '{print $2}')
 
 # Install pip via curl.
 curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py && python get-pip.py
