@@ -135,65 +135,14 @@ kubeadm reset -f
 iptables -F && iptables -t nat -F && iptables -t mangle -F && iptables -X
 
 if [ $ROLE = "master" ]; then
-    install_master_ubuntu_centos
+    install_master_ubuntu
 elif [ $ROLE = "node" ]; then
-    install_node_ubuntu_centos
+    install_node_ubuntu
 fi
 
 }
 
-centos_main() {
-################################################################################
-#
-#           CENTOS
-#
-################################################################################
-
-# Install needed packages
-cat <<EOF > /etc/yum.repos.d/kubernetes.repo
-[kubernetes]
-name=Kubernetes
-baseurl=https://packages.cloud.google.com/yum/repos/kubernetes-el7-x86_64
-enabled=1
-gpgcheck=1
-repo_gpgcheck=1
-gpgkey=https://packages.cloud.google.com/yum/doc/yum-key.gpg https://packages.cloud.google.com/yum/doc/rpm-package-key.gpg
-EOF
-
-setenforce 0
-sed -i --follow-symlinks 's/^SELINUX=.*/SELINUX=disabled/g' /etc/sysconfig/selinux
-
-cat <<EOF >  /etc/sysctl.d/k8s.conf
-net.bridge.bridge-nf-call-ip6tables = 1
-net.bridge.bridge-nf-call-iptables = 1
-EOF
-sysctl --system
-
-yum update -y
-yum install -y docker-ce docker-ce-cli containerd.io \
-                      kubelet-$(yum list available kubelet --showduplicates | grep 1.17 | head -1 | awk '{print $2}') \
-                      kubeadm-$(yum list available kubeadm --showduplicates | grep 1.17 | head -1 | awk '{print $2}') \
-                      kubectl-$(yum list available kubectl --showduplicates | grep 1.17 | head -1 | awk '{print $2}')
-
-# Install pip via curl.
-curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py && python get-pip.py
-
-# To be used later on yaml parsing
-pip install pyyaml
-
-systemctl enable docker && systemctl start docker
-systemctl enable kubelet && systemctl start kubelet
-
-
-if [ $ROLE = "master" ]; then
-    install_master_ubuntu_centos
-elif [ $ROLE = "node" ]; then
-    install_node_ubuntu_centos
-fi
-
-}
-
-install_master_ubuntu_centos() {
+install_master_ubuntu() {
 cat <<EOF > /etc/kubernetes/kubeadm-config.yaml
 apiVersion: kubeadm.k8s.io/v1beta2
 kind: InitConfiguration
@@ -230,7 +179,7 @@ kubever=$(kubectl --kubeconfig /etc/kubernetes/admin.conf version | base64 | tr 
 kubectl apply -f "https://cloud.weave.works/k8s/net?k8s-version=$kubever"
 }
 
-install_node_ubuntu_centos() {
+install_node_ubuntu() {
 # Join cluster
 kubeadm join --discovery-token-unsafe-skip-ca-verification --token $TOKEN $MASTER:443
 }
@@ -255,10 +204,6 @@ elif [[ $VERSION =~ .*Debian* ]]
 then
    echo "Found Debian distro"
    DISTRO="Debian"
-elif [[ $VERSION =~ .*CentOS* ]]
-then
-   echo "Found CentOS distro"
-   DISTRO="CentOS"
 else
     echo "Distro not supported"
     exit 1
@@ -295,8 +240,6 @@ find_distro
 
 if [ $DISTRO = "Ubuntu" ] || [ $DISTRO = "Debian" ];then
     ubuntu_main
-elif [ $DISTRO = "CentOS" ];then
-    centos_main
 fi
 
 }
