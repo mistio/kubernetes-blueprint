@@ -106,7 +106,7 @@ def _add_run_remove_script(cloud_id, machine_id, script_path, script_name):
             job_id=job['job_id'],
             job_kwargs={
                 'action': 'script_finished',
-                'machine_id': machine_id,
+                'external_id': machine_id,
             },
             timeout=180
         )

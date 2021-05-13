@@ -177,7 +177,8 @@ if __name__ == '__main__':
                 job_id=ctx.instance.runtime_properties['job_id'],
                 job_kwargs={
                     'action': 'script_finished',
-                    'machine_id': ctx.instance.runtime_properties['machine_id'],
+                    'external_id': ctx.instance.runtime_properties[
+                        'machine_id'],
                 }
             )
         except Exception:
