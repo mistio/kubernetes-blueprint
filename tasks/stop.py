@@ -56,13 +56,7 @@ def drain_and_remove():
     # Render script.
     script = os.path.join(os.path.dirname(__file__), 'drain-node.sh')
     ctx.download_resource_and_render(
-        os.path.join('scripts', 'drain-node.sh'), script,
-        template_variables={
-            'server_ip': master.runtime_properties.get('server_ip',''),
-            'auth_user': master.runtime_properties['auth_user'],
-            'auth_pass': master.runtime_properties['auth_pass'],
-            'hostname': ctx.instance.runtime_properties.get('machine_name', '').lower()
-        },
+        os.path.join('scripts', 'drain-node.sh'), script
     )
 
     conn = MistConnectionClient()
@@ -96,7 +90,7 @@ def _add_run_remove_script(cloud_id, machine_id, script_path, script_name):
 
     # Run the script.
     job = conn.client.run_script(script_id=script['id'], machine_id=machine_id,
-                                 cloud_id=cloud_id)
+                                 cloud_id=cloud_id, su=True)
 
     # Wait for the script to exit. The script should exit fairly quickly,
     # thus we only wait for a couple of minutes for the corresponding log
