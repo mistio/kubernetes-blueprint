@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 set -e
 while getopts "u:p:m:t:r:h:f:" OPTION
