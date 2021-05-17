@@ -100,9 +100,7 @@ def configure_kubernetes_master():
     ctx.logger.info('Installing kubernetes on master node')
 
     # Prepare script parameters.
-    params = "-u '%s' " % ctx.instance.runtime_properties['auth_user']
-    params += "-p '%s' " % ctx.instance.runtime_properties['auth_pass']
-    params += "-t '%s' " % ctx.instance.runtime_properties['master_token']
+    params = "-t '%s' " % ctx.instance.runtime_properties['master_token']
     params += "-r 'master'"
 
     # Run the script.

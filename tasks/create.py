@@ -71,9 +71,7 @@ def get_master_init_args():
         'auth_pass': ctx.node.properties['auth_pass'] or random_string(10),
     })
 
-    arguments = "-u '%s' " % ctx.instance.runtime_properties['auth_user']
-    arguments += "-p '%s' " % ctx.instance.runtime_properties['auth_pass']
-    arguments += "-t '%s' " % ctx.instance.runtime_properties['master_token']
+    arguments = "-t '%s' " % ctx.instance.runtime_properties['master_token']
     arguments += "-r 'master'"
 
     return arguments

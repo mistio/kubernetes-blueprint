@@ -1,15 +1,9 @@
 #!/usr/bin/env bash
 
 set -e
-while getopts "u:p:m:t:r:h:f:" OPTION
+while getopts "m:t:r:" OPTION
 do
     case $OPTION in
-        u)
-          AUTH_USERNAME=$OPTARG
-          ;;
-        p)
-          AUTH_PASSWORD=$OPTARG
-          ;;
         m)
           MASTER=$OPTARG
           ;;
@@ -18,12 +12,6 @@ do
           ;;
         r)
           ROLE=$OPTARG
-          ;;
-        h)
-          PUBLIC_IP=$OPTARG
-          ;;
-        f)
-          FQDN=$OPTARG
           ;;
         ?)
           exit
@@ -224,10 +212,6 @@ pass1=`date +%s | sha256sum | head -c 6 ; echo`
 pass2=`date +%s | sha256sum | head -c 16 ; echo`
 pass="${pass1}.${pass2}"
 TOKEN=${TOKEN-$pass}
-
-# If username and password not given then they become admin
-AUTH_USERNAME=${AUTH_USERNAME:-admin}
-AUTH_PASSWORD=${AUTH_PASSWORD:-admin}
 
 # Role must be provided
 if [ -z "$ROLE" ]
