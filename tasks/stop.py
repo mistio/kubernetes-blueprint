@@ -16,9 +16,9 @@ def reset_kubeadm():
 
     """
     # Get script from path.
-    script = os.path.join(os.path.dirname(__file__), 'mega-reset.sh')
+    script = os.path.join(os.path.dirname(__file__), 'reset-node.sh')
     ctx.download_resource(
-        os.path.join('scripts', 'mega-reset.sh'), script
+        os.path.join('scripts', 'reset-node.sh'), script
     )
 
     # Get worker.

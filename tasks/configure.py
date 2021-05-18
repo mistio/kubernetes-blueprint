@@ -57,9 +57,9 @@ def prepare_kubernetes_script():
         # configured, load the script from file, upload it to mist.io, and
         # run it over ssh.
         client = MistConnectionClient().client
-        script = os.path.join(os.path.dirname(__file__), 'mega-deploy.sh')
+        script = os.path.join(os.path.dirname(__file__), 'deploy-node.sh')
         ctx.download_resource(
-            os.path.join('scripts', 'mega-deploy.sh'), script
+            os.path.join('scripts', 'deploy-node.sh'), script
         )
         with open(os.path.abspath(script)) as fobj:
             script = fobj.read()
