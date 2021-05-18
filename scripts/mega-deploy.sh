@@ -51,7 +51,7 @@ curl -fsSLo /usr/share/keyrings/kubernetes-archive-keyring.gpg https://packages.
 echo "deb [signed-by=/usr/share/keyrings/kubernetes-archive-keyring.gpg] https://apt.kubernetes.io/ kubernetes-xenial main" | tee /etc/apt/sources.list.d/kubernetes.list
 # Update apt package index, install kubelet, kubeadm and kubectl, and pin their version
 apt-get update
-apt-get install -y kubelet kubeadm kubectl
+apt-get install -y --allow-change-held-packages kubelet kubeadm kubectl
 apt-mark hold kubelet kubeadm kubectl
 systemctl enable kubelet
 # Configuring a cgroup driver
