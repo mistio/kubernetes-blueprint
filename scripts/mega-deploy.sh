@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 set -e
-while getopts "m:t:r:" OPTION
+while getopts "m:t:r:n:" OPTION
 do
     case $OPTION in
         m)
@@ -12,6 +12,9 @@ do
           ;;
         r)
           ROLE=$OPTARG
+          ;;
+        n)
+          NODE_NAME=$OPTARG
           ;;
         ?)
           exit
@@ -134,6 +137,8 @@ install_master_ubuntu() {
 cat <<EOF > /etc/kubernetes/kubeadm-config.yaml
 apiVersion: kubeadm.k8s.io/v1beta2
 kind: InitConfiguration
+nodeRegistration:
+  name: "$NODE_NAME"
 localAPIEndpoint:
   bindPort: 443
 bootstrapTokens:
@@ -169,7 +174,10 @@ kubectl apply -f "https://cloud.weave.works/k8s/net?k8s-version=$kubever"
 
 install_node_ubuntu() {
 # Join cluster
-kubeadm join --discovery-token-unsafe-skip-ca-verification --token $TOKEN $MASTER:443
+kubeadm join $MASTER:443 \
+  --discovery-token-unsafe-skip-ca-verification \
+  --token $TOKEN \
+  --node-name $NODE_NAME
 }
 
 

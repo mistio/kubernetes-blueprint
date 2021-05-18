@@ -71,7 +71,8 @@ def get_master_init_args():
         'auth_pass': ctx.node.properties['auth_pass'] or random_string(10),
     })
 
-    arguments = "-t '%s' " % ctx.instance.runtime_properties['master_token']
+    arguments = "-n '%s' " % ctx.instance.runtime_properties['machine_name']
+    arguments += "-t '%s' " % ctx.instance.runtime_properties['master_token']
     arguments += "-r 'master'"
 
     return arguments
@@ -89,7 +90,8 @@ def get_worker_init_args():
         'master_token': master.runtime_properties.get('master_token', ''),
     })
 
-    arguments = "-m '%s' " % master.runtime_properties['master_ip']
+    arguments = "-n '%s' " % ctx.instance.runtime_properties['machine_name']
+    arguments += "-m '%s' " % master.runtime_properties['master_ip']
     arguments += "-t '%s' " % master.runtime_properties['master_token']
     arguments += "-r 'node'"
 
