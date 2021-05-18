@@ -56,7 +56,11 @@ def drain_and_remove():
     # Render script.
     script = os.path.join(os.path.dirname(__file__), 'drain-node.sh')
     ctx.download_resource_and_render(
-        os.path.join('scripts', 'drain-node.sh'), script
+        os.path.join('scripts', 'drain-node.sh'), script,
+        template_variables={
+            'hostname': ctx.instance.runtime_properties.get(
+                'machine_name', '').lower()
+        },
     )
 
     conn = MistConnectionClient()
