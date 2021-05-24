@@ -57,9 +57,9 @@ def prepare_kubernetes_script():
         # configured, load the script from file, upload it to mist.io, and
         # run it over ssh.
         client = MistConnectionClient().client
-        script = os.path.join(os.path.dirname(__file__), 'mega-deploy.sh')
+        script = os.path.join(os.path.dirname(__file__), 'deploy-node.sh')
         ctx.download_resource(
-            os.path.join('scripts', 'mega-deploy.sh'), script
+            os.path.join('scripts', 'deploy-node.sh'), script
         )
         with open(os.path.abspath(script)) as fobj:
             script = fobj.read()
@@ -100,8 +100,7 @@ def configure_kubernetes_master():
     ctx.logger.info('Installing kubernetes on master node')
 
     # Prepare script parameters.
-    params = "-u '%s' " % ctx.instance.runtime_properties['auth_user']
-    params += "-p '%s' " % ctx.instance.runtime_properties['auth_pass']
+    params = "-n '%s' " % ctx.instance.runtime_properties['machine_name']
     params += "-t '%s' " % ctx.instance.runtime_properties['master_token']
     params += "-r 'master'"
 
@@ -142,6 +141,7 @@ def configure_kubernetes_worker():
 
     # Prepare script parameters.
     params = "-m '%s' " % ctx.instance.runtime_properties['master_ip']
+    params += "-n '%s' " % ctx.instance.runtime_properties['machine_name']
     params += "-t '%s' " % ctx.instance.runtime_properties['master_token']
     params += "-r 'node'"
 
@@ -177,7 +177,8 @@ if __name__ == '__main__':
                 job_id=ctx.instance.runtime_properties['job_id'],
                 job_kwargs={
                     'action': 'script_finished',
-                    'machine_id': ctx.instance.runtime_properties['machine_id'],
+                    'external_id': ctx.instance.runtime_properties[
+                        'machine_id'],
                 }
             )
         except Exception:

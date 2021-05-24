@@ -1,5 +1,4 @@
 import os
-import sys
 
 from cloudify import ctx
 
@@ -17,9 +16,9 @@ def reset_kubeadm():
 
     """
     # Get script from path.
-    script = os.path.join(os.path.dirname(__file__), 'mega-reset.sh')
+    script = os.path.join(os.path.dirname(__file__), 'reset-node.sh')
     ctx.download_resource(
-        os.path.join('scripts', 'mega-reset.sh'), script
+        os.path.join('scripts', 'reset-node.sh'), script
     )
 
     # Get worker.
@@ -58,10 +57,8 @@ def drain_and_remove():
     ctx.download_resource_and_render(
         os.path.join('scripts', 'drain-node.sh'), script,
         template_variables={
-            'server_ip': master.runtime_properties.get('server_ip',''),
-            'auth_user': master.runtime_properties['auth_user'],
-            'auth_pass': master.runtime_properties['auth_pass'],
-            'hostname': ctx.instance.runtime_properties.get('machine_name', '').lower()
+            'hostname': ctx.instance.runtime_properties.get(
+                'machine_name', '').lower()
         },
     )
 
@@ -96,7 +93,7 @@ def _add_run_remove_script(cloud_id, machine_id, script_path, script_name):
 
     # Run the script.
     job = conn.client.run_script(script_id=script['id'], machine_id=machine_id,
-                                 cloud_id=cloud_id)
+                                 cloud_id=cloud_id, su=True)
 
     # Wait for the script to exit. The script should exit fairly quickly,
     # thus we only wait for a couple of minutes for the corresponding log
@@ -106,7 +103,7 @@ def _add_run_remove_script(cloud_id, machine_id, script_path, script_name):
             job_id=job['job_id'],
             job_kwargs={
                 'action': 'script_finished',
-                'machine_id': machine_id,
+                'external_id': machine_id,
             },
             timeout=180
         )

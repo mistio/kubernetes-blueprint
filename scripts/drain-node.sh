@@ -1,21 +1,4 @@
-#!/bin/sh
-
+#!/usr/bin/env bash
 set -ex
-
-# Drain the node.
-
-kubectl \
-    --server="https://{{server_ip}}" \
-    --username="{{auth_user}}" \
-    --password="{{auth_pass}}" \
-    --insecure-skip-tls-verify \
-    drain {{hostname}} --delete-local-data --force --ignore-daemonsets
-
-# Remove it from the cluster.
-
-kubectl \
-    --server="https://{{server_ip}}" \
-    --username="{{auth_user}}" \
-    --password="{{auth_pass}}" \
-    --insecure-skip-tls-verify \
-    delete nodes {{hostname}}
+kubectl drain {{hostname}} --delete-emptydir-data --force --ignore-daemonsets
+kubectl delete node {{hostname}}

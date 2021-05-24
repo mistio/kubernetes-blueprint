@@ -67,6 +67,7 @@ def graph_scale_up_workflow(delta, worker_data_list):
             instance.execute_operation(
                 operation='cloudify.interfaces.lifecycle.configure',
             ),
+            instance.set_state('started'),
             done_events[i],
         )
 

@@ -35,6 +35,7 @@ def graph_scale_down_workflow(delta):
             instance.execute_operation(
                 operation='cloudify.interfaces.lifecycle.delete',
             ),
+            instance.set_state('deleted'),
             done_events[i],
         )
 

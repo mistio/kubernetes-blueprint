@@ -31,7 +31,7 @@ def prepare_cloud_init():
     in order to get the arguments required by the kubernetes installation
     script.
 
-    The cloud-init.yml is just a wrapper around the mega-deploy.sh, which
+    The cloud-init.yml is just a wrapper around the deploy-node.sh, which
     is provided as a parameter at VM provision time. In return, we avoid
     the extra step of uploading an extra script and executing it over SSH.
 
@@ -41,7 +41,7 @@ def prepare_cloud_init():
     else:
         arguments = get_worker_init_args()
 
-    ctx.logger.debug('Will run mega-deploy.sh with: %s', arguments)
+    ctx.logger.debug('Will run deploy-node.sh with: %s', arguments)
     ctx.instance.runtime_properties['cloud_init_arguments'] = arguments
 
     ctx.logger.debug('Current runtime: %s', ctx.instance.runtime_properties)
@@ -71,8 +71,7 @@ def get_master_init_args():
         'auth_pass': ctx.node.properties['auth_pass'] or random_string(10),
     })
 
-    arguments = "-u '%s' " % ctx.instance.runtime_properties['auth_user']
-    arguments += "-p '%s' " % ctx.instance.runtime_properties['auth_pass']
+    arguments = "-n '%s' " % ctx.instance.runtime_properties['machine_name']
     arguments += "-t '%s' " % ctx.instance.runtime_properties['master_token']
     arguments += "-r 'master'"
 
@@ -91,7 +90,8 @@ def get_worker_init_args():
         'master_token': master.runtime_properties.get('master_token', ''),
     })
 
-    arguments = "-m '%s' " % master.runtime_properties['master_ip']
+    arguments = "-n '%s' " % ctx.instance.runtime_properties['machine_name']
+    arguments += "-m '%s' " % master.runtime_properties['master_ip']
     arguments += "-t '%s' " % master.runtime_properties['master_token']
     arguments += "-r 'node'"
 

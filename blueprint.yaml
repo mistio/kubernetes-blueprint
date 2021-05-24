@@ -163,18 +163,19 @@ outputs:
   configure_context:
     description: Configure kubectl context for cluster
     value:
-      command: { concat: [ 'kubectl config set-cluster ',
-                           'mycontext-cluster',
+      command: { concat: [ 'kubectl config set-cluster ', { get_attribute: [ kube_master, machine_name ] }, '-cluster',
                            ' --insecure-skip-tls-verify=true',
                            ' --server="https://', { get_attribute: [ kube_master, server_ip ] }, '"',
-                           ' && kubectl config set-credentials mycontext-admin',
+                           ' && kubectl config set-credentials ', { get_attribute: [ kube_master, machine_name ] }, '-admin',
                            ' --username="', { get_attribute: [ kube_master, auth_user ] }, '"',
                            ' --password="', { get_attribute: [ kube_master, auth_pass ] }, '"',
-                           ' && kubectl config set-context mycontext --cluster=mycontext-cluster --user=mycontext-admin']}
+                           ' && kubectl config set-context ', { get_attribute: [ kube_master, machine_name ] }, '-context',
+                           ' --cluster=', { get_attribute: [ kube_master, machine_name ] }, '-cluster',
+                           ' --user=', { get_attribute: [ kube_master, machine_name ] }, '-admin']}
   kubectl_use_context:
     description: Switch to the configured context for this cluster
     value:
-      command: { concat: ['kubectl config use-context mycontext'] }
+      command: { concat: ['kubectl config use-context ', { get_attribute: [ kube_master, machine_name ] }, '-context'] }
   kubectl_cluster_info:
     description: Kubernetes cluster-info command
     value:
@@ -182,5 +183,6 @@ outputs:
   start_dashboard_proxy:
     description: Kubernetes dashboard URL
     value:
-      command: { concat: [ 'kubectl proxy' ] }
-      url: http://localhost:8001/ui
+      command: { concat: [ 'kubectl apply -f https://raw.githubusercontent.com/kubernetes/dashboard/v2.2.0/aio/deploy/recommended.yaml',
+                           ' && kubectl proxy' ] }
+      url: http://localhost:8001/api/v1/namespaces/kubernetes-dashboard/services/https:kubernetes-dashboard:/proxy/
