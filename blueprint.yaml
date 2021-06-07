@@ -180,9 +180,3 @@ outputs:
     description: Kubernetes cluster-info command
     value:
       command: { concat: [ 'kubectl cluster-info' ] }
-  start_dashboard_proxy:
-    description: Kubernetes dashboard URL
-    value:
-      command: { concat: [ 'kubectl apply -f https://raw.githubusercontent.com/kubernetes/dashboard/v2.2.0/aio/deploy/recommended.yaml',
-                           ' && kubectl proxy' ] }
-      url: http://localhost:8001/api/v1/namespaces/kubernetes-dashboard/services/https:kubernetes-dashboard:/proxy/
