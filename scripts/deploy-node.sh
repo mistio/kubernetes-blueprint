@@ -1,9 +1,15 @@
 #!/usr/bin/env bash
 
 set -e
-while getopts "m:t:r:n:" OPTION
+while getopts "u:p:m:t:r:n:" OPTION
 do
     case $OPTION in
+        u)
+          AUTH_USERNAME=$OPTARG
+          ;;
+        p)
+          AUTH_PASSWORD=$OPTARG
+          ;;
         m)
           MASTER=$OPTARG
           ;;
@@ -170,6 +176,22 @@ done
 # Initialize pod network (weave)
 kubever=$(kubectl --kubeconfig /etc/kubernetes/admin.conf version | base64 | tr -d '\n')
 kubectl apply -f "https://cloud.weave.works/k8s/net?k8s-version=$kubever"
+# Apply rbac authorization
+cat <<EOF > /etc/kubernetes/admin-rbac.yaml
+kind: ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: admin-user-global
+subjects:
+- kind: User
+  name: $AUTH_USERNAME
+  apiGroup: rbac.authorization.k8s.io
+roleRef:
+  kind: ClusterRole
+  name: cluster-admin
+  apiGroup: rbac.authorization.k8s.io
+EOF
+kubectl --kubeconfig /etc/kubernetes/admin.conf apply -f /etc/kubernetes/admin-rbac.yaml
 }
 
 install_node_ubuntu() {
@@ -220,6 +242,10 @@ pass1=`date +%s | sha256sum | head -c 6 ; echo`
 pass2=`date +%s | sha256sum | head -c 16 ; echo`
 pass="${pass1}.${pass2}"
 TOKEN=${TOKEN-$pass}
+
+# If username and password not given then they become admin
+AUTH_USERNAME=${AUTH_USERNAME:-admin}
+AUTH_PASSWORD=${AUTH_PASSWORD:-admin}
 
 # Role must be provided
 if [ -z "$ROLE" ]
