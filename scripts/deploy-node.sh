@@ -50,7 +50,7 @@ sysctl --system
 # Install kubeadm, kubelet and kubectl
 # Update the apt package index and install packages needed to use the Kubernetes apt repository:
 apt-get update
-apt-get install -y apt-transport-https ca-certificates curl
+apt-get install -y apt-transport-https ca-certificates curl python3
 # Download the Google Cloud public signing key:
 curl -fsSLo /usr/share/keyrings/kubernetes-archive-keyring.gpg https://packages.cloud.google.com/apt/doc/apt-key.gpg
 # Add the Kubernetes apt repository
@@ -140,6 +140,8 @@ fi
 }
 
 install_master_ubuntu() {
+mkdir -p /etc/kubernetes/auth
+echo "$AUTH_PASSWORD,$AUTH_USERNAME,1" > /etc/kubernetes/auth/basicauth.csv
 cat <<EOF > /etc/kubernetes/kubeadm-config.yaml
 apiVersion: kubeadm.k8s.io/v1beta2
 kind: InitConfiguration
@@ -176,6 +178,26 @@ done
 # Initialize pod network (weave)
 kubever=$(kubectl --kubeconfig /etc/kubernetes/admin.conf version | base64 | tr -d '\n')
 kubectl apply -f "https://cloud.weave.works/k8s/net?k8s-version=$kubever"
+mkdir -p /var/lib/mist
+# Hack to enable basicauth
+cat <<EOF > /var/lib/mist/parser.py
+#!/usr/bin/env python3
+import sys
+import yaml
+file = sys.argv[-1]
+with open(file, 'r') as f:
+    manifest = yaml.load(open(file, 'r'))
+manifest['spec']['containers'][0]['command'].append('--basic-auth-file=/etc/kubernetes/auth/basicauth.csv')
+auth_volume = {'hostPath': {'path': '/etc/kubernetes/auth', 'type': 'DirectoryOrCreate'},
+                'name': 'auth'}
+manifest['spec']['volumes'].append(auth_volume)
+auth_volume_mount = {'mountPath': '/etc/kubernetes/auth', 'name': 'auth', 'readOnly': True}
+manifest['spec']['containers'][0]['volumeMounts'].append(auth_volume_mount)
+with open(file, 'w') as outfile:
+    yaml.dump(manifest, outfile, default_flow_style=False)
+EOF
+python3 /var/lib/mist/parser.py /etc/kubernetes/manifests/kube-apiserver.yaml
+systemctl restart kubelet
 # Apply rbac authorization
 cat <<EOF > /etc/kubernetes/admin-rbac.yaml
 kind: ClusterRoleBinding
