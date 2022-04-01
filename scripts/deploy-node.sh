@@ -92,12 +92,7 @@ docker run hello-world
 # Configure containerd
 mkdir -p /etc/containerd
 containerd config default > /etc/containerd/config.toml
-SystemdCgroupAssignment="SystemdCgroup = true"
-# Check if systemd cgroup driver is set
-if ! grep -q "$SystemdCgroupAssignment" /etc/containerd/config.toml; then
-  # Use the systemd cgroup driver
-  sed -i '/^\([[:blank:]]*\)\[plugins."io.containerd.grpc.v1.cri".containerd.runtimes.runc.options\]/a\            '"$SystemdCgroupAssignment" /etc/containerd/config.toml
-fi
+sed -i -e 's/SystemdCgroup = false/SystemdCgroup = true/g' /etc/containerd/config.toml
 cat /etc/containerd/config.toml
 # Restart containerd
 systemctl restart containerd
